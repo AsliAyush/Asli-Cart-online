@@ -1,0 +1,399 @@
+// Prisma Schema for Asli Cart
+// Configured for Neon PostgreSQL with pooled runtime connection and direct migration connection.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  fullName      String
+  email         String         @unique
+  passwordHash  String
+  phone         String?
+  avatarUrl     String?
+  roleId        String
+  isActive      Boolean        @default(true)
+  emailVerified Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  role                  Role            @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  refreshTokens         RefreshToken[]
+  auditLogs             AuditLog[]
+  createdProducts       Product[]       @relation("ProductCreatedBy")
+  updatedProducts       Product[]       @relation("ProductUpdatedBy")
+  createdOffers         Offer[]         @relation("OfferCreatedBy")
+  createdAffiliateLinks AffiliateLink[] @relation("AffiliateLinkCreatedBy")
+  cart                  Cart?
+  wishlist              Wishlist?
+  affiliateClicks       AffiliateClick[]
+
+  @@index([roleId])
+  @@index([email])
+  @@index([isActive])
+  @@map("users")
+}
+
+model Role {
+  id                    String                 @id @default(cuid())
+  name                  String                 @unique
+  description           String?
+  isSystem              Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  users                 User[]
+  roleModulePermissions RoleModulePermission[]
+
+  @@index([name])
+  @@map("roles")
+}
+
+model Module {
+  id                String             @id @default(cuid())
+  name              String             @unique
+  description       String?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  modulePermissions ModulePermission[]
+
+  @@index([name])
+  @@map("modules")
+}
+
+model ModulePermission {
+  id                    String                 @id @default(cuid())
+  moduleId              String
+  permissionKey         String
+  permissionName        String
+  description           String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  module                Module                 @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  roleModulePermissions RoleModulePermission[]
+
+  @@unique([moduleId, permissionKey])
+  @@index([moduleId])
+  @@index([permissionKey])
+  @@map("module_permissions")
+}
+
+model RoleModulePermission {
+  id                 String           @id @default(cuid())
+  roleId             String
+  modulePermissionId String
+  createdAt          DateTime         @default(now())
+
+  role               Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  modulePermission   ModulePermission @relation(fields: [modulePermissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, modulePermissionId])
+  @@index([roleId])
+  @@index([modulePermissionId])
+  @@map("role_module_permissions")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  moduleName  String
+  entityId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  actor       User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([moduleName])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?
+  parentId    String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Merchant {
+  id                 String              @id @default(cuid())
+  name               String              @unique
+  slug               String              @unique
+  websiteUrl         String
+  logoUrl            String?
+  affiliateNetwork   String              @default("CUELINKS")
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  offers             Offer[]
+  discoveredProducts DiscoveredProduct[]
+  affiliateClicks    AffiliateClick[]
+
+  @@index([slug])
+  @@map("merchants")
+}
+
+model Product {
+  id               String         @id @default(cuid())
+  name             String
+  slug             String         @unique
+  description      String?
+  brand            String?
+  categoryId       String
+  mainImage        String
+  additionalImages String[]       @default([])
+  specifications   Json?
+  status           String         @default("DRAFT") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED, ARCHIVED
+  isAssignedToSmm  Boolean        @default(false)
+  createdById      String
+  updatedById      String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  category         Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy        User           @relation("ProductCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy        User?          @relation("ProductUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  offers           Offer[]
+  priceHistories   PriceHistory[]
+  wishlistItems    WishlistItem[]
+  affiliateClicks  AffiliateClick[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([status])
+  @@index([createdById])
+  @@index([brand])
+  @@map("products")
+}
+
+model Offer {
+  id                 String          @id @default(cuid())
+  productId          String
+  merchantId         String
+  title              String
+  originalPrice      Decimal         @db.Decimal(10, 2)
+  sellingPrice       Decimal         @db.Decimal(10, 2)
+  discountPercentage Decimal         @db.Decimal(5, 2)
+  currency           String          @default("INR")
+  couponCode         String?
+  originalUrl        String
+  affiliateUrl       String?
+  availability       String          @default("IN_STOCK") // IN_STOCK, OUT_OF_STOCK, PRE_ORDER
+  status             String          @default("DRAFT") // DRAFT, PENDING_APPROVAL, APPROVED, PUBLISHED, REJECTED, PAUSED, EXPIRED
+  priceVerifiedAt    DateTime        @default(now())
+  priceSource        String          @default("manual") // manual, provider, scraper
+  rejectionReason    String?
+  startDate          DateTime?
+  endDate            DateTime?
+  createdById        String
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  product            Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  merchant           Merchant        @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  createdBy          User            @relation("OfferCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  priceHistories     PriceHistory[]
+  affiliateLinks     AffiliateLink[]
+  cartItems          CartItem[]
+  affiliateClicks    AffiliateClick[]
+
+  @@index([productId])
+  @@index([merchantId])
+  @@index([status])
+  @@index([createdById])
+  @@map("offers")
+}
+
+model PriceHistory {
+  id                 String   @id @default(cuid())
+  productId          String
+  offerId            String?
+  price              Decimal  @db.Decimal(10, 2)
+  originalPrice      Decimal? @db.Decimal(10, 2)
+  discountPercentage Decimal? @db.Decimal(5, 2)
+  currency           String   @default("INR")
+  source             String   @default("manual")
+  recordedAt         DateTime @default(now())
+
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  offer              Offer?   @relation(fields: [offerId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([offerId])
+  @@index([recordedAt])
+  @@map("price_histories")
+}
+
+model AffiliateLink {
+  id           String          @id @default(cuid())
+  offerId      String?
+  originalUrl  String
+  affiliateUrl String
+  provider     String          @default("CUELINKS")
+  subId1       String?
+  subId2       String?
+  status       String          @default("ACTIVE") // ACTIVE, FAILED, PENDING
+  createdById  String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  offer           Offer?          @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  createdBy       User            @relation("AffiliateLinkCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  affiliateClicks AffiliateClick[]
+
+  @@index([offerId])
+  @@index([provider])
+  @@index([status])
+  @@map("affiliate_links")
+}
+
+model DiscoveredProduct {
+  id                 String   @id @default(cuid())
+  externalId         String
+  merchantId         String
+  title              String
+  brand              String?
+  category           String?
+  price              Decimal  @db.Decimal(10, 2)
+  originalPrice      Decimal? @db.Decimal(10, 2)
+  discountPercentage Decimal? @db.Decimal(5, 2)
+  currency           String   @default("INR")
+  imageUrl           String?
+  productUrl         String
+  imported           Boolean  @default(false)
+  importedProductId  String?
+  discoveredAt       DateTime @default(now())
+
+  merchant           Merchant @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+
+  @@unique([merchantId, externalId])
+  @@index([merchantId])
+  @@index([imported])
+  @@map("discovered_products")
+}
+
+model Cart {
+  id         String     @id @default(cuid())
+  customerId String     @unique
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  customer   User       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id            String   @id @default(cuid())
+  cartId        String
+  offerId       String
+  quantity      Int      @default(1)
+  priceSnapshot Decimal  @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  cart          Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  offer         Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, offerId])
+  @@index([cartId])
+  @@index([offerId])
+  @@map("cart_items")
+}
+
+model Wishlist {
+  id         String         @id @default(cuid())
+  customerId String         @unique
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  customer   User           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      WishlistItem[]
+
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  wishlistId String
+  productId  String
+  createdAt  DateTime @default(now())
+
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([wishlistId, productId])
+  @@index([wishlistId])
+  @@index([productId])
+  @@map("wishlist_items")
+}
+
+model AffiliateClick {
+  id              String         @id @default(cuid())
+  customerId      String?
+  offerId         String
+  productId       String
+  merchantId      String
+  affiliateLinkId String?
+  clickReference  String         @unique
+  source          String         @default("direct") // cart, product_detail, search, recommendation
+  ipAddress       String?
+  userAgent       String?
+  clickedAt       DateTime       @default(now())
+
+  customer        User?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  offer           Offer          @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  product         Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  merchant        Merchant       @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  affiliateLink   AffiliateLink? @relation(fields: [affiliateLinkId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@index([offerId])
+  @@index([productId])
+  @@index([merchantId])
+  @@index([clickReference])
+  @@index([clickedAt])
+  @@map("affiliate_clicks")
+}
