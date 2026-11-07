@@ -25,8 +25,8 @@ export class AuthService {
       throw AppError.unauthorized('Account has been deactivated. Please contact support.');
     }
 
-    // Strictly enforce that only active SUPER_ADMIN can login via Admin portal
-    if (user.role.name !== ROLES.SUPER_ADMIN) {
+    // Strictly enforce that only staff/administrative roles can login via portal (Customers are denied)
+    if (user.role.name === ROLES.CUSTOMER) {
       throw AppError.forbidden('Access denied. Administrator privileges required.');
     }
 
