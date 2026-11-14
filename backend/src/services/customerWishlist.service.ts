@@ -9,12 +9,21 @@ export class CustomerWishlistService {
   ) {}
 
   async getWishlist(customerId: string) {
-    const wishlist = await this.wishlistRepo.getOrCreateWishlist(customerId);
-    const wishlistData = await this.wishlistRepo.findByCustomerId(customerId);
+    let wishlistData = await this.wishlistRepo.findByCustomerId(customerId);
 
-    if (!wishlistData || !wishlistData.items.length) {
+    // If no wishlist exists yet for this customer, create in single fallback step
+    if (!wishlistData) {
+      const createdWishlist = await this.wishlistRepo.getOrCreateWishlist(customerId);
       return {
-        wishlistId: wishlist.id,
+        wishlistId: createdWishlist.id,
+        itemsCount: 0,
+        items: [],
+      };
+    }
+
+    if (!wishlistData.items.length) {
+      return {
+        wishlistId: wishlistData.id,
         itemsCount: 0,
         items: [],
       };
@@ -43,7 +52,7 @@ export class CustomerWishlistService {
     });
 
     return {
-      wishlistId: wishlist.id,
+      wishlistId: wishlistData.id,
       itemsCount: items.length,
       items,
     };

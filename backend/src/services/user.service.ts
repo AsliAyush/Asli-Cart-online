@@ -58,10 +58,23 @@ export class UserService {
       throw AppError.badRequest('Specified role does not exist');
     }
 
-    // Never allow Super Admin creation via standard employee creation endpoint
+    // Never allow Super Admin or Customer creation via standard employee creation endpoint
     if (role.name === ROLES.SUPER_ADMIN) {
       throw AppError.forbidden(
         'Super Admin accounts cannot be created via standard employee management. Bootstrap is required.'
+      );
+    }
+
+    if (role.name === ROLES.CUSTOMER) {
+      throw AppError.forbidden(
+        'Customer accounts cannot be created via staff provisioning. Only PRODUCT_MANAGER and SOCIAL_MEDIA_MANAGER roles are assignable.'
+      );
+    }
+
+    const ALLOWED_STAFF_ROLES = [ROLES.PRODUCT_MANAGER, ROLES.SOCIAL_MEDIA_MANAGER];
+    if (!ALLOWED_STAFF_ROLES.includes(role.name as any)) {
+      throw AppError.forbidden(
+        'Only PRODUCT_MANAGER and SOCIAL_MEDIA_MANAGER accounts can be provisioned through employee management.'
       );
     }
 
@@ -182,6 +195,13 @@ export class UserService {
           'Action prohibited: Cannot change the role of the last active Super Admin'
         );
       }
+    }
+
+    // Only internal staff roles can be assigned via staff role management (cannot assign CUSTOMER)
+    if (targetRole.name === ROLES.CUSTOMER) {
+      throw AppError.forbidden(
+        'Customer role cannot be assigned via staff role management'
+      );
     }
 
     const updatedUser = await this.userRepo.update(id, {

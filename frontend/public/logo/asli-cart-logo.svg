@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" fill="none">
+  <!-- Cart badge / icon -->
+  <rect x="4" y="6" width="36" height="36" rx="10" fill="#4F46E5" />
+  <path d="M14 16h3.5l2.4 10.2a2 2 0 0 0 1.95 1.55H31a2 2 0 0 0 1.95-1.57l1.55-6.18H19" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="21.5" cy="33.5" r="2" fill="#F59E0B" />
+  <circle cx="29.5" cy="33.5" r="2" fill="#F59E0B" />
+  <!-- Brand text -->
+  <text x="50" y="32" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="800" fill="#0F172A">
+    Asli<tspan fill="#4F46E5">Cart</tspan>
+  </text>
+  <!-- Verified checkmark tick -->
+  <circle cx="165" cy="24" r="7" fill="#10B981" />
+  <path d="M162 24l2 2 4-4" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+

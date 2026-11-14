@@ -3,7 +3,7 @@ import { productRepository, ProductRepository } from '../repositories/product.re
 import { merchantRepository, MerchantRepository } from '../repositories/merchant.repository.js';
 import { categoryRepository, CategoryRepository } from '../repositories/category.repository.js';
 import { offerService, OfferService } from './offer.service.js';
-import { defaultDiscoveryProvider, IProductDiscoveryProvider } from '../infra/integrations/discovery/index.js';
+import { defaultDiscoveryProvider, getDiscoveryProvider, IProductDiscoveryProvider } from '../infra/integrations/discovery/index.js';
 import { AppError } from '../utils/appError.js';
 
 export class ProductDiscoveryService {
@@ -13,8 +13,12 @@ export class ProductDiscoveryService {
     private merchantRepo: MerchantRepository = merchantRepository,
     private categoryRepo: CategoryRepository = categoryRepository,
     private offerSvc: OfferService = offerService,
-    private discoveryProvider: IProductDiscoveryProvider = defaultDiscoveryProvider
+    private customDiscoveryProvider?: IProductDiscoveryProvider
   ) {}
+
+  private get discoveryProvider(): IProductDiscoveryProvider {
+    return this.customDiscoveryProvider || getDiscoveryProvider();
+  }
 
   async searchDiscovered(params: {
     keyword?: string;

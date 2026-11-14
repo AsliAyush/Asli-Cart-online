@@ -475,6 +475,8 @@ export function buildMockPrisma(store: MockStore) {
         if (data.discountPercentage !== undefined) offer.discountPercentage = data.discountPercentage;
         if (data.status !== undefined) offer.status = data.status;
         if (data.availability !== undefined) offer.availability = data.availability;
+        if (data.rejectionReason !== undefined) offer.rejectionReason = data.rejectionReason;
+        if (data.priceVerifiedAt !== undefined) offer.priceVerifiedAt = data.priceVerifiedAt;
         offer.updatedAt = new Date();
         return {
           ...offer,

@@ -1,0 +1,109 @@
+"use client";
+
+import React, { useState } from "react";
+import { StaffPageHeader } from "@/components/layout/staff";
+import { Button } from "@/components/ui/button";
+import {
+  useUsersList,
+  UserTable,
+  UserFilters,
+  CreateUserDialog,
+} from "@/modules/admin/users";
+import { UserPlus, RefreshCw } from "lucide-react";
+
+export default function AdminUsersPage() {
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [roleId, setRoleId] = useState<string | undefined>(undefined);
+  const [isActive, setIsActive] = useState<boolean | undefined>(undefined);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const limit = 10;
+
+  const { data, isLoading, refetch, isFetching } = useUsersList({
+    page,
+    limit,
+    search: search || undefined,
+    roleId: roleId || undefined,
+    isActive,
+  });
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setRoleId(undefined);
+    setIsActive(undefined);
+    setPage(1);
+  };
+
+  const users = data?.items || [];
+  const total = data?.pagination.total || 0;
+  const totalPages = data?.pagination.totalPages || 1;
+
+  return (
+    <div className="space-y-6">
+      <StaffPageHeader
+        title="User & Account Governance"
+        description="Provision employee accounts, assign role permissions, and govern user directory lifecycles."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="text-xs h-8"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setIsCreateOpen(true)}
+              className="text-xs h-8"
+            >
+              <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+              Provision Staff
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Filter Toolbar */}
+      <UserFilters
+        search={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(1);
+        }}
+        roleId={roleId}
+        onRoleChange={(val) => {
+          setRoleId(val);
+          setPage(1);
+        }}
+        isActive={isActive}
+        onStatusChange={(val) => {
+          setIsActive(val);
+          setPage(1);
+        }}
+        onReset={handleResetFilters}
+      />
+
+      {/* User Table */}
+      <UserTable
+        users={users}
+        isLoading={isLoading}
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        limit={limit}
+        onPageChange={(newPage) => setPage(newPage)}
+      />
+
+      {/* Create User Dialog */}
+      <CreateUserDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+      />
+    </div>
+  );
+}

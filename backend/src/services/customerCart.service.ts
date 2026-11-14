@@ -12,12 +12,24 @@ export class CustomerCartService {
   ) {}
 
   async getCart(customerId: string) {
-    const cart = await this.cartRepo.getOrCreateCart(customerId);
-    const cartData = await this.cartRepo.findByCustomerId(customerId);
+    let cartData = await this.cartRepo.findByCustomerId(customerId);
 
-    if (!cartData || !cartData.items.length) {
+    // If no cart exists yet for this customer, initialize it in a single fallback step
+    if (!cartData) {
+      const createdCart = await this.cartRepo.getOrCreateCart(customerId);
       return {
-        cartId: cart.id,
+        cartId: createdCart.id,
+        itemsCount: 0,
+        subtotal: 0,
+        currency: 'INR',
+        merchantGroups: [],
+        items: [],
+      };
+    }
+
+    if (!cartData.items.length) {
+      return {
+        cartId: cartData.id,
         itemsCount: 0,
         subtotal: 0,
         currency: 'INR',
@@ -85,7 +97,7 @@ export class CustomerCartService {
     });
 
     return {
-      cartId: cart.id,
+      cartId: cartData.id,
       itemsCount: items.reduce((acc, curr) => acc + curr.quantity, 0),
       subtotal: Math.round(subtotal * 100) / 100,
       currency: 'INR',
@@ -195,10 +207,21 @@ export class CustomerCartService {
       throw AppError.badRequest('This offer is no longer available');
     }
 
+    const now = new Date();
+    if (offer.endDate && new Date(offer.endDate) < now) {
+      throw AppError.badRequest('This merchant offer has expired');
+    }
+
     // Resolve affiliate link
     const affiliateLink = offer.affiliateLinks && offer.affiliateLinks.length > 0
       ? offer.affiliateLinks[0]
       : null;
+
+    // Stored destination URL (strictly from database, never user-injected)
+    const destinationUrl = affiliateLink ? affiliateLink.affiliateUrl : (offer.affiliateUrl || offer.originalUrl);
+    if (!destinationUrl) {
+      throw AppError.badRequest('Merchant redirect URL not configured for this offer');
+    }
 
     // Generate unique click reference token
     const clickReference = `clk_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
@@ -215,9 +238,6 @@ export class CustomerCartService {
       ipAddress,
       userAgent,
     });
-
-    // Stored destination URL (strictly from database, never user-injected)
-    const destinationUrl = affiliateLink ? affiliateLink.affiliateUrl : (offer.affiliateUrl || offer.originalUrl);
 
     return {
       clickReference,

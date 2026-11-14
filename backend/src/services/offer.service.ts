@@ -229,6 +229,7 @@ export class OfferService {
 
     const updated = await this.offerRepo.update(id, {
       status: 'PENDING_APPROVAL',
+      rejectionReason: null,
     });
 
     await this.auditRepo.create({
@@ -237,6 +238,161 @@ export class OfferService {
       moduleName: MODULES.OFFER,
       entityId: id,
       metadata: { previousStatus: offer.status, newStatus: 'PENDING_APPROVAL' },
+    });
+
+    return updated;
+  }
+
+  async approveOffer(id: string, actorId: string) {
+    const offer = await this.offerRepo.findById(id);
+    if (!offer) {
+      throw AppError.notFound('Offer not found');
+    }
+
+    if (offer.status !== 'PENDING_APPROVAL') {
+      throw AppError.badRequest(
+        `Cannot approve offer in ${offer.status} status. Only offers in PENDING_APPROVAL can be approved.`
+      );
+    }
+
+    const updated = await this.offerRepo.update(id, {
+      status: 'APPROVED',
+      rejectionReason: null,
+    });
+
+    await this.auditRepo.create({
+      actorUserId: actorId,
+      action: 'offer.approve',
+      moduleName: MODULES.OFFER,
+      entityId: id,
+      metadata: { previousStatus: offer.status, newStatus: 'APPROVED' },
+    });
+
+    return updated;
+  }
+
+  async rejectOffer(id: string, reason: string | undefined, actorId: string) {
+    const effectiveReason = (reason || '').trim();
+    if (!effectiveReason) {
+      throw AppError.badRequest('Rejection reason is required');
+    }
+
+    const offer = await this.offerRepo.findById(id);
+    if (!offer) {
+      throw AppError.notFound('Offer not found');
+    }
+
+    if (offer.status !== 'PENDING_APPROVAL') {
+      throw AppError.badRequest(
+        `Cannot reject offer in ${offer.status} status. Only offers in PENDING_APPROVAL can be rejected.`
+      );
+    }
+
+    const updated = await this.offerRepo.update(id, {
+      status: 'REJECTED',
+      rejectionReason: effectiveReason,
+    });
+
+    await this.auditRepo.create({
+      actorUserId: actorId,
+      action: 'offer.reject',
+      moduleName: MODULES.OFFER,
+      entityId: id,
+      metadata: {
+        previousStatus: offer.status,
+        newStatus: 'REJECTED',
+        rejectionReason: reason || null,
+      },
+    });
+
+    return updated;
+  }
+
+  async publishOffer(id: string, actorId: string) {
+    const offer = await this.offerRepo.findById(id);
+    if (!offer) {
+      throw AppError.notFound('Offer not found');
+    }
+
+    // Business rule: Only APPROVED offers can be published
+    if (offer.status !== 'APPROVED') {
+      throw AppError.badRequest(
+        `Cannot publish offer in ${offer.status} status. Offer must be APPROVED by Admin before publishing.`
+      );
+    }
+
+    // Validate pricing & eligibility
+    if (Number(offer.sellingPrice) <= 0) {
+      throw AppError.badRequest('Cannot publish offer with zero or negative selling price');
+    }
+    if (Number(offer.sellingPrice) > Number(offer.originalPrice)) {
+      throw AppError.badRequest('Selling price cannot exceed original price');
+    }
+    if (!offer.originalUrl) {
+      throw AppError.badRequest('Cannot publish offer without a valid original merchant URL');
+    }
+
+    const updated = await this.offerRepo.update(id, {
+      status: 'PUBLISHED',
+      priceVerifiedAt: new Date(),
+    });
+
+    await this.auditRepo.create({
+      actorUserId: actorId,
+      action: 'offer.publish',
+      moduleName: MODULES.OFFER,
+      entityId: id,
+      metadata: { previousStatus: offer.status, newStatus: 'PUBLISHED' },
+    });
+
+    return updated;
+  }
+
+  async pauseOffer(id: string, actorId: string) {
+    const offer = await this.offerRepo.findById(id);
+    if (!offer) {
+      throw AppError.notFound('Offer not found');
+    }
+
+    if (offer.status !== 'PUBLISHED') {
+      throw AppError.badRequest(
+        `Cannot pause offer in ${offer.status} status. Only PUBLISHED offers can be paused.`
+      );
+    }
+
+    const updated = await this.offerRepo.update(id, { status: 'PAUSED' });
+
+    await this.auditRepo.create({
+      actorUserId: actorId,
+      action: 'offer.pause',
+      moduleName: MODULES.OFFER,
+      entityId: id,
+      metadata: { previousStatus: offer.status, newStatus: 'PAUSED' },
+    });
+
+    return updated;
+  }
+
+  async expireOffer(id: string, actorId: string) {
+    const offer = await this.offerRepo.findById(id);
+    if (!offer) {
+      throw AppError.notFound('Offer not found');
+    }
+
+    if (!['PUBLISHED', 'PAUSED'].includes(offer.status)) {
+      throw AppError.badRequest(
+        `Cannot expire offer in ${offer.status} status. Only PUBLISHED or PAUSED offers can be expired.`
+      );
+    }
+
+    const updated = await this.offerRepo.update(id, { status: 'EXPIRED' });
+
+    await this.auditRepo.create({
+      actorUserId: actorId,
+      action: 'offer.expire',
+      moduleName: MODULES.OFFER,
+      entityId: id,
+      metadata: { previousStatus: offer.status, newStatus: 'EXPIRED' },
     });
 
     return updated;

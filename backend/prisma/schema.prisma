@@ -204,6 +204,7 @@ model Product {
   @@index([status])
   @@index([createdById])
   @@index([brand])
+  @@index([createdAt])
   @@map("products")
 }
 
@@ -242,6 +243,9 @@ model Offer {
   @@index([merchantId])
   @@index([status])
   @@index([createdById])
+  @@index([createdAt])
+  @@index([status, sellingPrice])
+  @@index([productId, status, sellingPrice])
   @@map("offers")
 }
 

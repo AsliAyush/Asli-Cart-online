@@ -18,6 +18,7 @@ export class MockProductDiscoveryProvider implements IProductDiscoveryProvider {
       imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e',
       productUrl: 'https://www.amazon.in/dp/B09XS7JWHH',
       specifications: { color: 'Black', batteryLife: '30 hours', connection: 'Bluetooth 5.2' },
+      isDemo: true,
     },
     {
       externalId: 'DISC-FLP-002',
@@ -33,6 +34,7 @@ export class MockProductDiscoveryProvider implements IProductDiscoveryProvider {
       imageUrl: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab',
       productUrl: 'https://www.flipkart.com/apple-iphone-15-blue-128-gb/p/itm123',
       specifications: { display: '6.1 inch Super Retina XDR', chip: 'A16 Bionic', storage: '128 GB' },
+      isDemo: true,
     },
     {
       externalId: 'DISC-MYN-003',
@@ -48,6 +50,7 @@ export class MockProductDiscoveryProvider implements IProductDiscoveryProvider {
       imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff',
       productUrl: 'https://www.myntra.com/sports-shoes/puma/running-shoes/12345',
       specifications: { material: 'Mesh', closure: 'Lace-Up', sole: 'Rubber' },
+      isDemo: true,
     },
     {
       externalId: 'DISC-AMZ-004',
@@ -63,6 +66,7 @@ export class MockProductDiscoveryProvider implements IProductDiscoveryProvider {
       imageUrl: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c',
       productUrl: 'https://www.amazon.in/dp/B0CS5XWZ8Z',
       specifications: { ram: '12 GB', storage: '256 GB', camera: '200 MP Quad' },
+      isDemo: true,
     },
     {
       externalId: 'DISC-TCQ-005',
@@ -78,6 +82,7 @@ export class MockProductDiscoveryProvider implements IProductDiscoveryProvider {
       imageUrl: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1',
       productUrl: 'https://www.tatacliq.com/lg-55-inch-oled/p-mp123456',
       specifications: { resolution: '4K Ultra HD', refreshRate: '120 Hz', os: 'webOS' },
+      isDemo: true,
     },
   ];
 

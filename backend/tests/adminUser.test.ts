@@ -199,6 +199,22 @@ describe('Admin User Management Module', () => {
     expect(res.body.message).toContain('Super Admin accounts cannot be created');
   });
 
+  it('POST /api/v1/admin/users - should PREVENT creating Customer through staff provisioning endpoint', async () => {
+    const res = await request(app)
+      .post('/api/v1/admin/users')
+      .set('Authorization', `Bearer ${superAdminToken}`)
+      .send({
+        fullName: 'Rogue Customer',
+        email: 'customer@aslicart.com',
+        password: 'ValidPassword123!',
+        roleId: 'role-customer',
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toContain('Customer accounts cannot be created via staff provisioning');
+  });
+
   it('POST /api/v1/admin/users - should reject duplicate email address', async () => {
     const res = await request(app)
       .post('/api/v1/admin/users')

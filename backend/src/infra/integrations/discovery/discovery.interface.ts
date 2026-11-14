@@ -12,6 +12,7 @@ export interface DiscoveredItem {
   imageUrl?: string;
   productUrl: string;
   specifications?: Record<string, any>;
+  isDemo?: boolean;
 }
 
 export interface IProductDiscoveryProvider {

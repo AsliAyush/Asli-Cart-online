@@ -5,6 +5,7 @@ import roleRouter from './role/role.router.js';
 import moduleRouter from './module/module.router.js';
 import dashboardRouter from './dashboard/dashboard.router.js';
 import auditLogRouter from './auditLog/auditLog.router.js';
+import offerRouter from './offer/offer.router.js';
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.use('/users', userRouter);
 router.use('/roles', roleRouter);
 router.use('/modules', moduleRouter);
 router.use('/audit-logs', auditLogRouter);
+router.use('/offers', offerRouter);
 
 export default router;
 

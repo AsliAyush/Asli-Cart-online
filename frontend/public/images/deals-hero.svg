@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" fill="none">
+  <defs>
+    <linearGradient id="heroGrad" x1="0" y1="0" x2="800" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F46E5" />
+      <stop offset="1" stop-color="#312E81" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" rx="24" fill="url(#heroGrad)" />
+  <circle cx="680" cy="120" r="160" fill="#6366F1" opacity="0.25" />
+  <circle cx="120" cy="420" r="140" fill="#F59E0B" opacity="0.15" />
+  <rect x="180" y="110" width="440" height="280" rx="16" fill="#FFFFFF" opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="2"/>
+  <text x="400" y="240" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF" text-anchor="middle">
+    Verified Real-Time Deals
+  </text>
+  <text x="400" y="280" font-family="system-ui, sans-serif" font-size="16" fill="#C7D2FE" text-anchor="middle">
+    Asli Savings Across Top Indian E-Commerce Stores
+  </text>
+</svg>
+

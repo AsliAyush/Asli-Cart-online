@@ -102,13 +102,23 @@ export class CustomerProductService {
         skip,
         take: limit,
         orderBy,
-        include: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          brand: true,
+          mainImage: true,
+          createdAt: true,
           category: {
             select: { id: true, name: true, slug: true },
           },
           offers: {
             where: offerFilter,
-            include: {
+            select: {
+              id: true,
+              sellingPrice: true,
+              originalPrice: true,
+              discountPercentage: true,
               merchant: {
                 select: { id: true, name: true, slug: true, logoUrl: true },
               },
@@ -221,8 +231,16 @@ export class CustomerProductService {
     };
   }
 
+  private categoriesCache: { data: any; expiry: number } | null = null;
+
   async getCategories() {
-    return prisma.category.findMany({
+    const now = Date.now();
+    // Use short TTL cache in production/development to avoid continuous database queries for static categories
+    if (process.env.NODE_ENV !== 'test' && this.categoriesCache && this.categoriesCache.expiry > now) {
+      return this.categoriesCache.data;
+    }
+
+    const categories = await prisma.category.findMany({
       where: { isActive: true },
       select: {
         id: true,
@@ -239,6 +257,15 @@ export class CustomerProductService {
       },
       orderBy: { name: 'asc' },
     });
+
+    if (process.env.NODE_ENV !== 'test') {
+      this.categoriesCache = {
+        data: categories,
+        expiry: now + 5 * 60 * 1000, // 5 minute TTL
+      };
+    }
+
+    return categories;
   }
 }
 
