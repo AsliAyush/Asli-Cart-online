@@ -16,9 +16,26 @@ export const createApp = (): Application => {
   app.use(helmet());
 
   // CORS Configuration
+  const allowedOrigins = env.FRONTEND_URL
+    ? env.FRONTEND_URL.split(',').map((u) => u.trim().replace(/\/$/, ''))
+    : ['http://localhost:3000'];
+
   app.use(
     cors({
-      origin: env.FRONTEND_URL ? [env.FRONTEND_URL] : true,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+          return callback(null, true);
+        }
+        try {
+          const parsed = new URL(origin);
+          if (parsed.hostname.endsWith('.vercel.app')) {
+            return callback(null, true);
+          }
+        } catch {
+          // ignore URL parse error
+        }
+        return callback(null, false);
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

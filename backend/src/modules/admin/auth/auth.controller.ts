@@ -13,8 +13,8 @@ export class AuthController {
       res.cookie('refreshToken', result.refreshToken, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       ResponseFormatter.success(res, 'Admin authentication successful', result);
@@ -31,7 +31,7 @@ export class AuthController {
       res.cookie('refreshToken', result.refreshToken, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
@@ -46,7 +46,11 @@ export class AuthController {
       const rawRefreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
       await authService.logout(rawRefreshToken, req.user?.id);
 
-      res.clearCookie('refreshToken');
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+      });
       ResponseFormatter.success(res, 'Logged out successfully');
     } catch (err) {
       next(err);
