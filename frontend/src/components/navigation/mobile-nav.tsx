@@ -23,6 +23,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useUiStore } from "@/stores";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { useAuth } from "@/hooks/use-auth";
 import { getRoleDashboardPath } from "@/lib/auth-helpers";
 
@@ -50,13 +51,8 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-[300px] sm:w-[350px]">
         <SheetHeader className="text-left">
-          <SheetTitle className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-              AC
-            </div>
-            <span className="font-bold text-lg">
-              Asli<span className="text-primary">Cart</span>
-            </span>
+          <SheetTitle asChild>
+            <BrandLogo size="md" href={null} />
           </SheetTitle>
         </SheetHeader>
 

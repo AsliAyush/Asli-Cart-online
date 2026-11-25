@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MobileNav } from "./mobile-nav";
 import { Badge } from "@/components/ui/badge";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { useAuth } from "@/hooks/use-auth";
 import { getRoleDashboardPath } from "@/lib/auth-helpers";
 
@@ -19,16 +20,7 @@ export function Navbar() {
         {/* Brand Logo & Mobile Trigger */}
         <div className="flex items-center gap-3">
           <MobileNav />
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-base shadow-sm">
-              AC
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-extrabold tracking-tight text-foreground">
-                Asli<span className="text-primary">Cart</span>
-              </span>
-            </div>
-          </Link>
+          <BrandLogo size="md" priority />
           <Badge
             variant="deal"
             className="hidden lg:inline-flex text-[10px] py-0 px-2 font-bold"

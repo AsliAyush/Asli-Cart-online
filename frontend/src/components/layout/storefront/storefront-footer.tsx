@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { ShieldCheck, Sparkles, Heart, Mail, MapPin } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export function StorefrontFooter() {
   const currentYear = new Date().getFullYear();
@@ -12,14 +13,7 @@ export function StorefrontFooter() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {/* Brand info */}
           <div className="space-y-3 md:col-span-1">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-black text-sm">
-                AC
-              </div>
-              <span className="text-xl font-bold tracking-tight">
-                Asli<span className="text-primary">Cart</span>
-              </span>
-            </div>
+            <BrandLogo size="md" href="/" />
             <p className="text-xs text-muted-foreground leading-relaxed">
               India&apos;s transparent discovery platform for authentic online deals and verified price drops. No fake discounts, no inflated MRPs.
             </p>

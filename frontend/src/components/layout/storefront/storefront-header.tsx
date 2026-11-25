@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { StorefrontSearch } from "./storefront-search";
 import { StorefrontUserMenu } from "./storefront-user-menu";
 import { StorefrontMobileNav } from "./storefront-mobile-nav";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { useCustomerCart } from "@/modules/customer/hooks/use-customer-cart";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -32,16 +33,7 @@ export function StorefrontHeader() {
         {/* Brand Logo & Mobile Trigger */}
         <div className="flex items-center gap-3">
           <StorefrontMobileNav />
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-base shadow">
-              AC
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-extrabold tracking-tight text-foreground">
-                Asli<span className="text-primary">Cart</span>
-              </span>
-            </div>
-          </Link>
+          <BrandLogo size="md" priority />
           <Badge
             variant="deal"
             className="hidden xl:inline-flex text-[10px] py-0 px-2 font-bold"

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { LogOut, ExternalLink } from "lucide-react";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export function StaffMobileSidebar() {
   const pathname = usePathname();
@@ -33,18 +34,8 @@ export function StaffMobileSidebar() {
       <SheetContent side="left" className="w-[280px] p-0 flex flex-col">
         {/* Header */}
         <SheetHeader className="p-4 border-b border-border text-left">
-          <SheetTitle className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-base shadow">
-              AC
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-base tracking-tight leading-none text-foreground">
-                Asli<span className="text-primary">Cart</span>
-              </span>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mt-0.5">
-                Staff Portal
-              </span>
-            </div>
+          <SheetTitle asChild>
+            <BrandLogo size="md" subtitle="Staff Portal" href={null} />
           </SheetTitle>
         </SheetHeader>
 

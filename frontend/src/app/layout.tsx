@@ -8,8 +8,12 @@ export const metadata: Metadata = {
     "Discover verified price drops, genuine merchant discounts, and transparent affiliate savings across India's top online stores.",
   icons: {
     icon: [
-      { url: "/icons/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/favicon.png", type: "image/png" },
       { url: "/favicon.ico" },
+      { url: "/logo/aslicart-icon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/apple-touch-icon.png" },
     ],
   },
 };

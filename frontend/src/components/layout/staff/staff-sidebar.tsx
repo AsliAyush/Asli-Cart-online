@@ -9,6 +9,7 @@ import { getStaffNavItems } from "./staff-nav-config";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import {
   ChevronLeft,
   ChevronRight,
@@ -32,21 +33,13 @@ export function StaffSidebar() {
     >
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
-        <Link href="/" className="flex items-center gap-2.5 overflow-hidden">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-base shadow">
-            AC
-          </div>
-          {!isSidebarCollapsed && (
-            <div className="flex flex-col min-w-0">
-              <span className="font-extrabold text-base tracking-tight leading-none text-foreground">
-                Asli<span className="text-primary">Cart</span>
-              </span>
-              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mt-0.5">
-                Staff Portal
-              </span>
-            </div>
-          )}
-        </Link>
+        <BrandLogo
+          size="md"
+          showText={!isSidebarCollapsed}
+          subtitle="Staff Portal"
+          className="overflow-hidden"
+          priority
+        />
       </div>
 
       {/* Role Pill Banner */}
