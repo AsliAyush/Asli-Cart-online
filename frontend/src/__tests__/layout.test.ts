@@ -32,9 +32,9 @@ describe("Phase 3 Layouts & Navigation Test Suite", () => {
   });
 
   // Test 1: Super Admin sees the correct sidebar
-  it("1. Super Admin sees the correct sidebar - returns all 6 governance navigation items", () => {
+  it("1. Super Admin sees the correct sidebar - returns all 11 governance navigation items", () => {
     const navItems = getStaffNavItems("SUPER_ADMIN");
-    expect(navItems).toHaveLength(6);
+    expect(navItems).toHaveLength(11);
 
     const titles = navItems.map((i) => i.title);
     expect(titles).toEqual([
@@ -43,6 +43,11 @@ describe("Phase 3 Layouts & Navigation Test Suite", () => {
       "Roles & Permissions",
       "Products",
       "Offers",
+      "Cuelinks Campaigns",
+      "Affiliate Links",
+      "Affiliate Analytics",
+      "Transactions",
+      "Earnings",
       "Settings",
     ]);
 

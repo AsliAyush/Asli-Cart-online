@@ -58,5 +58,19 @@ router.patch(
   offerController.updateStatus
 );
 
+router.post(
+  '/:id/affiliate/convert',
+  requirePermission(MODULES.OFFER, PERMISSIONS.UPDATE),
+  validateRequest({ params: offerIdParamSchema }),
+  offerController.convertAffiliateLink
+);
+
+router.get(
+  '/:id/affiliate/status',
+  requirePermission(MODULES.OFFER, PERMISSIONS.VIEW),
+  validateRequest({ params: offerIdParamSchema }),
+  offerController.getAffiliateStatus
+);
+
 export default router;
 

@@ -54,6 +54,7 @@ export default function ProductDetailPage() {
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [hasImageError, setHasImageError] = useState(false);
 
   const wishlistItem = wishlistData?.items.find((i) => i.productId === product?.id);
   const isWishlisted = Boolean(wishlistItem);
@@ -133,11 +134,12 @@ export default function ProductDetailPage() {
           {/* Left: Image Gallery */}
           <div className="space-y-4">
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-border/80 bg-secondary/20 p-6 flex items-center justify-center shadow-sm">
-              {currentImage ? (
+              {currentImage && !hasImageError ? (
                 <img
                   src={currentImage}
                   alt={product.name}
                   className="h-full w-full object-contain"
+                  onError={() => setHasImageError(true)}
                 />
               ) : (
                 <ShoppingBag className="h-20 w-20 text-muted-foreground/40" />

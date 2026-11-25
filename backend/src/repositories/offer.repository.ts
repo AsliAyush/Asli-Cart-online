@@ -80,7 +80,12 @@ export class OfferRepository {
     currency?: string;
     couponCode?: string;
     originalUrl: string;
-    affiliateUrl?: string;
+    affiliateUrl?: string | null;
+    affiliateProvider?: string;
+    conversionStatus?: string;
+    isAffiliated?: boolean;
+    lastConvertedAt?: Date;
+    conversionError?: string | null;
     availability?: string;
     status?: string;
     priceVerifiedAt?: Date;
@@ -101,6 +106,11 @@ export class OfferRepository {
         couponCode: data.couponCode,
         originalUrl: data.originalUrl,
         affiliateUrl: data.affiliateUrl,
+        affiliateProvider: data.affiliateProvider || 'CUELINKS',
+        conversionStatus: data.conversionStatus || 'NOT_CONVERTED',
+        isAffiliated: data.isAffiliated || false,
+        lastConvertedAt: data.lastConvertedAt,
+        conversionError: data.conversionError,
         availability: data.availability || 'IN_STOCK',
         status: data.status || 'DRAFT',
         priceVerifiedAt: data.priceVerifiedAt || new Date(),

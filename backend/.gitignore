@@ -11,4 +11,6 @@ pnpm-debug.log*
 .DS_Store
 coverage/
 .prisma/
+.env.staging
+
 

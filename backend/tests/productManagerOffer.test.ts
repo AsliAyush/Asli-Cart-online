@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { setupTestEnvironment } from './testHelper.js';
+import { cuelinksLinkConversionService } from '../src/services/cuelinksLinkConversion.service.js';
 
 let app: any;
 let pmToken: string;
@@ -48,6 +49,13 @@ describe('Product Manager Offer Management Module', () => {
       });
 
     createdProductId = prodRes.body.data.id;
+
+    vi.spyOn(cuelinksLinkConversionService, 'convertUrl').mockImplementation(async (rawUrl) => ({
+      originalUrl: rawUrl,
+      affiliateUrl: `https://linksredirect.com/?cid=mock&url=${encodeURIComponent(rawUrl)}`,
+      affiliated: true,
+      conversionStatus: 'CONVERTED',
+    }));
   });
 
   it('POST /api/v1/product-manager/offers - should create an offer in DRAFT status and auto-calculate discount', async () => {

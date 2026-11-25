@@ -220,6 +220,11 @@ model Offer {
   couponCode         String?
   originalUrl        String
   affiliateUrl       String?
+  affiliateProvider  String?         @default("CUELINKS") @map("affiliate_provider")
+  conversionStatus   String          @default("NOT_CONVERTED") @map("conversion_status") // NOT_CONVERTED, PENDING, CONVERTED, NOT_AFFILIATED, FAILED
+  isAffiliated       Boolean         @default(false) @map("is_affiliated")
+  lastConvertedAt    DateTime?       @map("last_converted_at")
+  conversionError    String?         @map("conversion_error")
   availability       String          @default("IN_STOCK") // IN_STOCK, OUT_OF_STOCK, PRE_ORDER
   status             String          @default("DRAFT") // DRAFT, PENDING_APPROVAL, APPROVED, PUBLISHED, REJECTED, PAUSED, EXPIRED
   priceVerifiedAt    DateTime        @default(now())
@@ -246,6 +251,8 @@ model Offer {
   @@index([createdAt])
   @@index([status, sellingPrice])
   @@index([productId, status, sellingPrice])
+  @@index([conversionStatus])
+  @@index([isAffiliated])
   @@map("offers")
 }
 
@@ -401,3 +408,100 @@ model AffiliateClick {
   @@index([clickedAt])
   @@map("affiliate_clicks")
 }
+
+model CuelinksCampaign {
+  id                 String    @id @default(cuid())
+  externalCampaignId Int       @unique @map("external_campaign_id")
+  name               String
+  description        String?   @db.Text
+  url                String?
+  domain             String?
+  image              String?
+  accessStatus       String    @default("open") @map("access_status") // open, approval_required, pending, paused, rejected
+  payout             String?
+  payoutCurrency     String?   @default("INR") @map("payout_currency")
+  epc7d              String?   @map("epc_7d")
+  epc90d             String?   @map("epc_90d")
+  campaignType       String?   @map("campaign_type")
+  isFeatured         Boolean   @default(false) @map("is_featured")
+  country            String?
+  category           String?
+  platforms          Json?     // Array of allowed platforms e.g. ["Web", "Mobile Web", "Android App", "iOS App"]
+  media              Json?     // Allowed/disallowed media types or channels
+  rawMetadata        Json?     @map("raw_metadata") // Full raw API response
+  lastSyncedAt       DateTime  @default(now()) @map("last_synced_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@index([externalCampaignId])
+  @@index([accessStatus])
+  @@index([name])
+  @@index([domain])
+  @@index([category])
+  @@index([country])
+  @@index([lastSyncedAt])
+  @@map("cuelinks_campaigns")
+}
+
+model CuelinksTransaction {
+  id                    String    @id @default(cuid())
+  externalTransactionId String    @unique @map("external_transaction_id")
+  campaignId            Int?      @map("campaign_id")
+  campaignName          String?   @map("campaign_name")
+  campaignType          String?   @map("campaign_type")
+  transactionDate       DateTime  @map("transaction_date")
+  status                String    @default("pending") // pending, validated, payable, claimed, rejected, etc.
+  saleAmount            Decimal?  @map("sale_amount") @db.Decimal(14, 2)
+  commissionAmount      Decimal?  @map("commission_amount") @db.Decimal(14, 2) // user_commission
+  currency              String    @default("UNKNOWN")
+  merchantRefId         String?   @map("merchant_ref_id")
+  orderId               String?   @map("order_id")
+  productName           String?   @map("product_name")
+  category              String?
+  channelId             Int?      @map("channel_id")
+  channelName           String?   @map("channel_name")
+  subId                 String?   @map("sub_id")
+  subId2                String?   @map("sub_id_2")
+  subId3                String?   @map("sub_id_3")
+  subId4                String?   @map("sub_id_4")
+  subId5                String?   @map("sub_id_5")
+  invoiceNumber         String?   @map("invoice_number")
+  rawMetadata           Json?     @map("raw_metadata")
+  lastSyncedAt          DateTime  @default(now()) @map("last_synced_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@index([externalTransactionId])
+  @@index([transactionDate])
+  @@index([status])
+  @@index([campaignId])
+  @@index([subId])
+  @@index([invoiceNumber])
+  @@index([updatedAt])
+  @@index([lastSyncedAt])
+  @@map("cuelinks_transactions")
+}
+
+model CuelinksTransactionSyncLog {
+  id              String    @id @default(cuid())
+  status          String    @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED, FAILED
+  startedAt       DateTime  @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  updatedSince    DateTime? @map("updated_since")
+  recordsFetched  Int       @default(0) @map("records_fetched")
+  recordsCreated  Int       @default(0) @map("records_created")
+  recordsUpdated  Int       @default(0) @map("records_updated")
+  failedRecords   Int       @default(0) @map("failed_records")
+  isPartial       Boolean   @default(false) @map("is_partial")
+  checkpointPage  Int?      @map("checkpoint_page")
+  reachedPageLimit Boolean  @default(false) @map("reached_page_limit")
+  lastProcessedDate DateTime? @map("last_processed_date")
+  error           String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([startedAt])
+  @@index([status])
+  @@map("cuelinks_transaction_sync_logs")
+}
+
+

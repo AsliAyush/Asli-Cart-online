@@ -26,14 +26,14 @@ export const userIdParamSchema = z.object({
 });
 
 export const createEmployeeSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Valid email is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  roleId: z.string().min(1, 'Role ID is required'),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100, 'Full name cannot exceed 100 characters'),
+  email: z.string().email('Valid email is required').max(255, 'Email cannot exceed 255 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password cannot exceed 128 characters'),
+  roleId: z.string().min(1, 'Role ID is required').max(100),
 });
 
 export const updateEmployeeSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters').optional(),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100, 'Full name cannot exceed 100 characters').optional(),
 });
 
 export const updateUserStatusSchema = z.object({

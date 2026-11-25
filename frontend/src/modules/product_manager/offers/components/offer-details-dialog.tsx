@@ -1,5 +1,5 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tag, ExternalLink, Link2, TrendingDown, Store } from "lucide-react";
+import {
+  Tag,
+  ExternalLink,
+  Link2,
+  TrendingDown,
+  Store,
+  RotateCw,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
+import { toast } from "sonner";
 import { pmOfferService } from "../offer.service";
 import { PM_OFFERS_QUERY_KEYS } from "../hooks/use-pm-offers";
 import { RejectionReasonBanner } from "./rejection-reason-banner";
@@ -30,10 +40,23 @@ export function OfferDetailsDialog({
   onEditClick,
   onSubmitApprovalClick,
 }: OfferDetailsDialogProps) {
+  const queryClient = useQueryClient();
   const { data: offer, isLoading } = useQuery({
     queryKey: PM_OFFERS_QUERY_KEYS.detail(offerId || ""),
     queryFn: () => pmOfferService.getOfferById(offerId!),
     enabled: !!offerId && isOpen,
+  });
+
+  const convertMutation = useMutation({
+    mutationFn: () => pmOfferService.convertAffiliateLink(offerId!),
+    onSuccess: (data) => {
+      toast.success(`Affiliate status: ${data.conversionStatus}`);
+      queryClient.invalidateQueries({ queryKey: PM_OFFERS_QUERY_KEYS.detail(offerId!) });
+      queryClient.invalidateQueries({ queryKey: ["pm", "offers"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || err?.message || "Failed to convert affiliate link");
+    },
   });
 
   return (
@@ -131,29 +154,62 @@ export function OfferDetailsDialog({
               </div>
             </div>
 
-            {/* Tracked Affiliate Links */}
-            <div className="space-y-2">
-              <h4 className="font-semibold text-xs text-foreground flex items-center gap-1.5">
-                <Link2 className="h-3.5 w-3.5 text-primary" />
-                <span>Generated Affiliate Links ({offer.affiliateLinks?.length || 0})</span>
-              </h4>
+            {/* Tracked Affiliate Links & Cuelinks Conversion */}
+            <div className="space-y-3 p-3 rounded-xl border bg-card">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                  <Link2 className="h-3.5 w-3.5 text-primary" />
+                  <span>Cuelinks V3 Affiliate Status</span>
+                </h4>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={
+                      (offer as any).conversionStatus === "CONVERTED"
+                        ? "default"
+                        : (offer as any).conversionStatus === "FAILED"
+                        ? "destructive"
+                        : "secondary"
+                    }
+                    className="text-[10px]"
+                  >
+                    {(offer as any).conversionStatus || "PENDING"}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => convertMutation.mutate()}
+                    disabled={convertMutation.isPending}
+                  >
+                    <RotateCw className={`h-3 w-3 ${convertMutation.isPending ? "animate-spin" : ""}`} />
+                    <span>Convert / Retry</span>
+                  </Button>
+                </div>
+              </div>
 
-              {(!offer.affiliateLinks || offer.affiliateLinks.length === 0) ? (
-                <div className="rounded-lg border border-dashed p-3 text-center text-muted-foreground text-[11px]">
-                  No affiliate tracking link generated yet for this offer.
+              {(offer as any).affiliateUrl ? (
+                <div className="p-2.5 bg-primary/5 border border-primary/20 rounded-lg font-mono text-[11px] break-all flex items-center justify-between gap-2">
+                  <span className="text-primary font-medium">{(offer as any).affiliateUrl}</span>
+                  <a
+                    href={(offer as any).affiliateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline shrink-0"
+                    title="Open tracking URL"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
                 </div>
               ) : (
-                <div className="rounded-lg border divide-y divide-border bg-card">
-                  {offer.affiliateLinks.map((link) => (
-                    <div key={link.id} className="p-2.5 flex items-center justify-between gap-2 text-[11px]">
-                      <div className="min-w-0 flex-1 font-mono truncate text-muted-foreground">
-                        {link.affiliateUrl}
-                      </div>
-                      <Badge variant="outline" className="text-[10px] shrink-0">
-                        {link.provider}
-                      </Badge>
-                    </div>
-                  ))}
+                <div className="p-2 bg-muted/30 border border-dashed rounded text-muted-foreground italic text-[11px]">
+                  No affiliate link generated. Traffic routes to original URL.
+                </div>
+              )}
+
+              {(offer as any).conversionError && (
+                <div className="flex items-center gap-1.5 text-[11px] text-destructive bg-destructive/10 p-2 rounded">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  <span>Notice: {(offer as any).conversionError}</span>
                 </div>
               )}
             </div>

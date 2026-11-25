@@ -81,6 +81,26 @@ export class OfferController {
       next(err);
     }
   }
+
+  async convertAffiliateLink(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const offerId = req.params.offerId || req.params.id;
+      const result = await offerService.convertAffiliateLink(offerId, req.user!.id, req.user!.roleName);
+      ResponseFormatter.success(res, 'Affiliate link converted successfully', result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getAffiliateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const offerId = req.params.offerId || req.params.id;
+      const status = await offerService.getAffiliateStatus(offerId);
+      ResponseFormatter.success(res, 'Affiliate conversion status retrieved', status);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const offerController = new OfferController();

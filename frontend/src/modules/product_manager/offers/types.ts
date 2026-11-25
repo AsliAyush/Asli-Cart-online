@@ -12,6 +12,11 @@ export interface PMOfferListItem {
   couponCode?: string | null;
   originalUrl: string;
   affiliateUrl?: string | null;
+  affiliateProvider?: string | null;
+  conversionStatus?: 'PENDING' | 'CONVERTED' | 'NOT_AFFILIATED' | 'FAILED' | string;
+  isAffiliated?: boolean;
+  lastConvertedAt?: string | null;
+  conversionError?: string | null;
   availability: "IN_STOCK" | "OUT_OF_STOCK" | "PRE_ORDER" | string;
   status:
     | "DRAFT"

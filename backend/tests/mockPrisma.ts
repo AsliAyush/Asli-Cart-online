@@ -27,6 +27,9 @@ export interface MockStore {
   wishlists: any[];
   wishlistItems: any[];
   affiliateClicks: any[];
+  cuelinksCampaigns: any[];
+  cuelinksTransactions: any[];
+  cuelinksTransactionSyncLogs: any[];
 }
 
 export function createMockStore(): MockStore {
@@ -50,6 +53,9 @@ export function createMockStore(): MockStore {
     wishlists: [],
     wishlistItems: [],
     affiliateClicks: [],
+    cuelinksCampaigns: [],
+    cuelinksTransactions: [],
+    cuelinksTransactionSyncLogs: [],
   };
 }
 
@@ -409,6 +415,8 @@ export function buildMockPrisma(store: MockStore) {
           if (where?.productId && o.productId !== where.productId) return false;
           if (where?.merchantId && o.merchantId !== where.merchantId) return false;
           if (where?.status && o.status !== where.status) return false;
+          if (where?.conversionStatus && o.conversionStatus !== where.conversionStatus) return false;
+          if (where?.isAffiliated !== undefined && o.isAffiliated !== where.isAffiliated) return false;
           return true;
         });
         if (orderBy?.sellingPrice === 'asc') {
@@ -448,6 +456,11 @@ export function buildMockPrisma(store: MockStore) {
           couponCode: data.couponCode || null,
           originalUrl: data.originalUrl,
           affiliateUrl: data.affiliateUrl || null,
+          affiliateProvider: data.affiliateProvider || null,
+          conversionStatus: data.conversionStatus || 'PENDING',
+          isAffiliated: data.isAffiliated ?? false,
+          lastConvertedAt: data.lastConvertedAt || null,
+          conversionError: data.conversionError || null,
           availability: data.availability || 'IN_STOCK',
           status: data.status || 'DRAFT',
           priceVerifiedAt: data.priceVerifiedAt || new Date(),
@@ -469,14 +482,7 @@ export function buildMockPrisma(store: MockStore) {
       update: async ({ where, data }: any) => {
         const offer = store.offers.find((o) => o.id === where.id);
         if (!offer) throw new Error('Offer not found');
-        if (data.title !== undefined) offer.title = data.title;
-        if (data.originalPrice !== undefined) offer.originalPrice = data.originalPrice;
-        if (data.sellingPrice !== undefined) offer.sellingPrice = data.sellingPrice;
-        if (data.discountPercentage !== undefined) offer.discountPercentage = data.discountPercentage;
-        if (data.status !== undefined) offer.status = data.status;
-        if (data.availability !== undefined) offer.availability = data.availability;
-        if (data.rejectionReason !== undefined) offer.rejectionReason = data.rejectionReason;
-        if (data.priceVerifiedAt !== undefined) offer.priceVerifiedAt = data.priceVerifiedAt;
+        Object.assign(offer, data);
         offer.updatedAt = new Date();
         return {
           ...offer,
@@ -487,6 +493,8 @@ export function buildMockPrisma(store: MockStore) {
       count: async ({ where }: any = {}) => {
         return store.offers.filter((o) => {
           if (where?.status && o.status !== where.status) return false;
+          if (where?.conversionStatus && o.conversionStatus !== where.conversionStatus) return false;
+          if (where?.isAffiliated !== undefined && o.isAffiliated !== where.isAffiliated) return false;
           return true;
         }).length;
       },
@@ -904,6 +912,304 @@ export function buildMockPrisma(store: MockStore) {
         };
       },
       count: async () => store.affiliateClicks.length,
+    },
+    cuelinksCampaign: {
+      findMany: async ({ where = {}, orderBy = {}, skip = 0, take = 50 }: any = {}) => {
+        let results = [...store.cuelinksCampaigns];
+        if (where.accessStatus) {
+          results = results.filter((c) => c.accessStatus.toLowerCase() === where.accessStatus.toLowerCase());
+        }
+        if (where.category) {
+          results = results.filter((c) => c.category && c.category.toLowerCase().includes(where.category.toLowerCase()));
+        }
+        if (where.country) {
+          results = results.filter((c) => c.country && c.country.toLowerCase() === where.country.toLowerCase());
+        }
+        if (where.name?.contains) {
+          results = results.filter((c) => c.name.toLowerCase().includes(where.name.contains.toLowerCase()));
+        }
+        if (where.OR) {
+          results = results.filter((c) => {
+            return where.OR.some((clause: any) => {
+              if (clause.name?.contains) {
+                return c.name.toLowerCase().includes(clause.name.contains.toLowerCase());
+              }
+              if (clause.domain?.contains) {
+                return c.domain && c.domain.toLowerCase().includes(clause.domain.contains.toLowerCase());
+              }
+              return false;
+            });
+          });
+        }
+        // Sorting
+        if (orderBy.lastSyncedAt) {
+          results.sort((a, b) => orderBy.lastSyncedAt === 'asc' ? a.lastSyncedAt.getTime() - b.lastSyncedAt.getTime() : b.lastSyncedAt.getTime() - a.lastSyncedAt.getTime());
+        } else if (orderBy.name) {
+          results.sort((a, b) => orderBy.name === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+        }
+        return results.slice(skip, skip + take);
+      },
+      count: async ({ where = {} }: any = {}) => {
+        let results = [...store.cuelinksCampaigns];
+        if (where.accessStatus) {
+          results = results.filter((c) => c.accessStatus.toLowerCase() === where.accessStatus.toLowerCase());
+        }
+        if (where.OR) {
+          results = results.filter((c) => {
+            return where.OR.some((clause: any) => {
+              if (clause.name?.contains) {
+                return c.name.toLowerCase().includes(clause.name.contains.toLowerCase());
+              }
+              if (clause.domain?.contains) {
+                return c.domain && c.domain.toLowerCase().includes(clause.domain.contains.toLowerCase());
+              }
+              return false;
+            });
+          });
+        }
+        return results.length;
+      },
+      findUnique: async ({ where }: any) => {
+        if (where.id) {
+          return store.cuelinksCampaigns.find((c) => c.id === where.id) || null;
+        }
+        if (where.externalCampaignId) {
+          return store.cuelinksCampaigns.find((c) => c.externalCampaignId === where.externalCampaignId) || null;
+        }
+        return null;
+      },
+      findFirst: async ({ where }: any) => {
+        return store.cuelinksCampaigns.find((c) => {
+          if (where.id && c.id !== where.id) return false;
+          if (where.externalCampaignId && c.externalCampaignId !== where.externalCampaignId) return false;
+          return true;
+        }) || null;
+      },
+      create: async ({ data }: any) => {
+        const item = {
+          id: data.id || `campaign-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          ...data,
+          lastSyncedAt: data.lastSyncedAt || new Date(),
+          createdAt: data.createdAt || new Date(),
+          updatedAt: data.updatedAt || new Date(),
+        };
+        store.cuelinksCampaigns.push(item);
+        return item;
+      },
+      update: async ({ where, data }: any) => {
+        const idx = store.cuelinksCampaigns.findIndex((c) => (where.id && c.id === where.id) || (where.externalCampaignId && c.externalCampaignId === where.externalCampaignId));
+        if (idx === -1) throw new Error('CuelinksCampaign not found');
+        store.cuelinksCampaigns[idx] = {
+          ...store.cuelinksCampaigns[idx],
+          ...data,
+          updatedAt: new Date(),
+        };
+        return store.cuelinksCampaigns[idx];
+      },
+      upsert: async ({ where, update, create }: any) => {
+        const idx = store.cuelinksCampaigns.findIndex((c) => where.externalCampaignId && c.externalCampaignId === where.externalCampaignId);
+        if (idx !== -1) {
+          store.cuelinksCampaigns[idx] = {
+            ...store.cuelinksCampaigns[idx],
+            ...update,
+            updatedAt: new Date(),
+          };
+          return store.cuelinksCampaigns[idx];
+        } else {
+          const item = {
+            id: create.id || `campaign-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            ...create,
+            lastSyncedAt: create.lastSyncedAt || new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          store.cuelinksCampaigns.push(item);
+          return item;
+        }
+      },
+    },
+    cuelinksTransaction: {
+      findMany: async ({ where = {}, orderBy = {}, skip = 0, take = 50, select }: any = {}) => {
+        let results = [...store.cuelinksTransactions];
+        if (where.status?.equals) {
+          results = results.filter((t) => t.status.toLowerCase() === where.status.equals.toLowerCase());
+        }
+        if (where.campaignId) {
+          results = results.filter((t) => Number(t.campaignId) === Number(where.campaignId));
+        }
+        if (where.subId?.contains) {
+          results = results.filter((t) => t.subId && t.subId.toLowerCase().includes(where.subId.contains.toLowerCase()));
+        }
+        if (where.invoiceNumber?.contains) {
+          results = results.filter((t) => t.invoiceNumber && t.invoiceNumber.toLowerCase().includes(where.invoiceNumber.contains.toLowerCase()));
+        }
+        if (where.transactionDate?.gte) {
+          results = results.filter((t) => new Date(t.transactionDate) >= new Date(where.transactionDate.gte));
+        }
+        if (where.transactionDate?.lte) {
+          results = results.filter((t) => new Date(t.transactionDate) <= new Date(where.transactionDate.lte));
+        }
+        if (where.OR) {
+          results = results.filter((t) => {
+            return where.OR.some((clause: any) => {
+              if (clause.externalTransactionId?.contains) return t.externalTransactionId.includes(clause.externalTransactionId.contains);
+              if (clause.productName?.contains) return t.productName && t.productName.toLowerCase().includes(clause.productName.contains.toLowerCase());
+              if (clause.campaignName?.contains) return t.campaignName && t.campaignName.toLowerCase().includes(clause.campaignName.contains.toLowerCase());
+              if (clause.orderId?.contains) return t.orderId && t.orderId.toLowerCase().includes(clause.orderId.contains.toLowerCase());
+              if (clause.merchantRefId?.contains) return t.merchantRefId && t.merchantRefId.toLowerCase().includes(clause.merchantRefId.contains.toLowerCase());
+              if (clause.subId?.contains) return t.subId && t.subId.toLowerCase().includes(clause.subId.contains.toLowerCase());
+              return false;
+            });
+          });
+        }
+        const sliced = results.slice(skip, skip + take);
+        if (select) {
+          return sliced.map((item) => {
+            const projected: any = {};
+            for (const key of Object.keys(select)) {
+              if (select[key]) {
+                projected[key] = item[key];
+              }
+            }
+            return projected;
+          });
+        }
+        return sliced;
+      },
+      count: async ({ where = {} }: any = {}) => {
+        let results = [...store.cuelinksTransactions];
+        if (where.status?.equals) {
+          results = results.filter((t) => t.status.toLowerCase() === where.status.equals.toLowerCase());
+        }
+        if (where.campaignId) {
+          results = results.filter((t) => Number(t.campaignId) === Number(where.campaignId));
+        }
+        if (where.subId?.contains) {
+          results = results.filter((t) => t.subId && t.subId.toLowerCase().includes(where.subId.contains.toLowerCase()));
+        }
+        if (where.invoiceNumber?.contains) {
+          results = results.filter((t) => t.invoiceNumber && t.invoiceNumber.toLowerCase().includes(where.invoiceNumber.contains.toLowerCase()));
+        }
+        if (where.transactionDate?.gte) {
+          results = results.filter((t) => new Date(t.transactionDate) >= new Date(where.transactionDate.gte));
+        }
+        if (where.transactionDate?.lte) {
+          results = results.filter((t) => new Date(t.transactionDate) <= new Date(where.transactionDate.lte));
+        }
+        return results.length;
+      },
+      findUnique: async ({ where }: any) => {
+        if (where.id) {
+          return store.cuelinksTransactions.find((t) => t.id === where.id) || null;
+        }
+        if (where.externalTransactionId) {
+          return store.cuelinksTransactions.find((t) => String(t.externalTransactionId) === String(where.externalTransactionId)) || null;
+        }
+        return null;
+      },
+      findFirst: async ({ where }: any) => {
+        return store.cuelinksTransactions.find((t) => {
+          if (where.id && t.id !== where.id) return false;
+          if (where.externalTransactionId && String(t.externalTransactionId) !== String(where.externalTransactionId)) return false;
+          if (where.OR) {
+            return where.OR.some((clause: any) => {
+              if (clause.id && t.id === clause.id) return true;
+              if (clause.externalTransactionId && String(t.externalTransactionId) === String(clause.externalTransactionId)) return true;
+              return false;
+            });
+          }
+          return true;
+        }) || null;
+      },
+      create: async ({ data }: any) => {
+        const item = {
+          id: data.id || `tx-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          ...data,
+          lastSyncedAt: data.lastSyncedAt || new Date(),
+          createdAt: data.createdAt || new Date(),
+          updatedAt: data.updatedAt || new Date(),
+        };
+        store.cuelinksTransactions.push(item);
+        return item;
+      },
+      update: async ({ where, data }: any) => {
+        const idx = store.cuelinksTransactions.findIndex(
+          (t) => (where.id && t.id === where.id) || (where.externalTransactionId && String(t.externalTransactionId) === String(where.externalTransactionId))
+        );
+        if (idx === -1) throw new Error('CuelinksTransaction not found');
+        store.cuelinksTransactions[idx] = {
+          ...store.cuelinksTransactions[idx],
+          ...data,
+          updatedAt: new Date(),
+        };
+        return store.cuelinksTransactions[idx];
+      },
+      upsert: async ({ where, update, create }: any) => {
+        const idx = store.cuelinksTransactions.findIndex(
+          (t) => where.externalTransactionId && String(t.externalTransactionId) === String(where.externalTransactionId)
+        );
+        if (idx !== -1) {
+          store.cuelinksTransactions[idx] = {
+            ...store.cuelinksTransactions[idx],
+            ...update,
+            updatedAt: new Date(),
+          };
+          return store.cuelinksTransactions[idx];
+        } else {
+          const item = {
+            id: create.id || `tx-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            ...create,
+            lastSyncedAt: create.lastSyncedAt || new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          store.cuelinksTransactions.push(item);
+          return item;
+        }
+      },
+    },
+    cuelinksTransactionSyncLog: {
+      create: async ({ data }: any) => {
+        const item = {
+          id: data.id || `synclog-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          ...data,
+          startedAt: data.startedAt || new Date(),
+          createdAt: new Date(),
+        };
+        store.cuelinksTransactionSyncLogs.push(item);
+        return item;
+      },
+      update: async ({ where, data }: any) => {
+        const idx = store.cuelinksTransactionSyncLogs.findIndex((l) => l.id === where.id);
+        if (idx !== -1) {
+          store.cuelinksTransactionSyncLogs[idx] = {
+            ...store.cuelinksTransactionSyncLogs[idx],
+            ...data,
+          };
+          return store.cuelinksTransactionSyncLogs[idx];
+        }
+        return null;
+      },
+      findFirst: async ({ where = {}, orderBy = {} }: any = {}) => {
+        let results = [...store.cuelinksTransactionSyncLogs];
+        if (where.status) {
+          results = results.filter((l) => l.status === where.status);
+        }
+        if (where.isPartial !== undefined) {
+          results = results.filter((l) => Boolean(l.isPartial) === Boolean(where.isPartial));
+        }
+        if (where.lastProcessedDate && where.lastProcessedDate.not === null) {
+          results = results.filter((l) => l.lastProcessedDate != null);
+        }
+        if (orderBy?.startedAt === 'desc' || orderBy?.completedAt === 'desc') {
+          results.sort((a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime());
+        }
+        return results[0] || null;
+      },
+      findMany: async ({ where = {} }: any = {}) => {
+        return store.cuelinksTransactionSyncLogs;
+      },
+      count: async () => store.cuelinksTransactionSyncLogs.length,
     },
     $queryRaw: async () => [{ '1': 1 }],
     $transaction: async (cb: any) => cb(mockPrisma),

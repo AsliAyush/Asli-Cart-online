@@ -10,6 +10,10 @@ import {
   Compass,
   TrendingDown,
   Share2,
+  Link2,
+  BarChart3,
+  Receipt,
+  Coins,
 } from "lucide-react";
 
 export interface StaffNavItem {
@@ -60,6 +64,41 @@ export const SUPER_ADMIN_NAV: StaffNavItem[] = [
     icon: Tag,
     implemented: true,
     description: "Global deal approval and offer feeds",
+  },
+  {
+    title: "Cuelinks Campaigns",
+    href: "/admin/campaigns",
+    icon: Share2,
+    implemented: true,
+    description: "Cuelinks V3 merchant campaigns discovery & management",
+  },
+  {
+    title: "Affiliate Links",
+    href: "/admin/affiliate-links",
+    icon: Link2,
+    implemented: true,
+    description: "Cuelinks V3 affiliate links, status & conversion management",
+  },
+  {
+    title: "Affiliate Analytics",
+    href: "/admin/affiliate-analytics",
+    icon: BarChart3,
+    implemented: true,
+    description: "Multi-merchant affiliate revenue, clicks, and conversion analytics",
+  },
+  {
+    title: "Transactions",
+    href: "/admin/transactions",
+    icon: Receipt,
+    implemented: true,
+    description: "Detailed affiliate transaction ledger and commissions log",
+  },
+  {
+    title: "Earnings",
+    href: "/admin/earnings",
+    icon: Coins,
+    implemented: true,
+    description: "Monthly commission breakdown across lifecycle statuses",
   },
   {
     title: "Settings",

@@ -2,8 +2,9 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { z } from 'zod';
 
-// Load .env from backend directory
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// Load .env from backend directory (supports ENV_FILE override e.g. .env.staging)
+const envFile = process.env.ENV_FILE || '.env';
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -22,6 +23,8 @@ const envSchema = z.object({
   ADMIN_BOOTSTRAP_PASSWORD: z.string().min(8).optional(),
   REDIS_URL: z.string().optional().default('redis://localhost:6379'),
   FRONTEND_URL: z.string().optional().default('http://localhost:3000'),
+  CUELINKS_API_KEY: z.string().optional(),
+  CUELINKS_BASE_URL: z.string().url().default('https://developers.cuelinks.com/pub_api/v3'),
 });
 
 const parseEnv = () => {

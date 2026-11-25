@@ -8,9 +8,15 @@ import { logger } from './utils/logger.js';
 import { apiRateLimiter } from './middlewares/rateLimiter.js';
 import { errorMiddleware, notFoundMiddleware } from './middlewares/errorMiddleware.js';
 import apiV1Router from './routes/index.js';
+import { resolveTrustProxyConfiguration } from './config/proxy.js';
 
 export const createApp = (): Application => {
   const app = express();
+
+  // Strictly validated infrastructure proxy trust (Render internal network + Cloudflare Anycast edge)
+  // Resolves ERR_ERL_UNEXPECTED_X_FORWARDED_FOR while strictly rejecting unsafe/permissive overrides
+  const trustProxySetting = resolveTrustProxyConfiguration(process.env.TRUST_PROXY);
+  app.set('trust proxy', trustProxySetting as any);
 
   // Security Headers
   app.use(helmet());
@@ -20,6 +26,9 @@ export const createApp = (): Application => {
     ? env.FRONTEND_URL.split(',').map((u) => u.trim().replace(/\/$/, ''))
     : ['http://localhost:3000'];
 
+  // Restrict Vercel preview origins strictly to Asli Cart project deployments
+  const ASLI_CART_VERCEL_PREVIEW_REGEX = /^asli-?cart(-[a-z0-9_-]+)?\.vercel\.app$/i;
+
   app.use(
     cors({
       origin: (origin, callback) => {
@@ -28,7 +37,7 @@ export const createApp = (): Application => {
         }
         try {
           const parsed = new URL(origin);
-          if (parsed.hostname.endsWith('.vercel.app')) {
+          if (ASLI_CART_VERCEL_PREVIEW_REGEX.test(parsed.hostname)) {
             return callback(null, true);
           }
         } catch {

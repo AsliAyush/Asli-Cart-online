@@ -132,5 +132,37 @@ export const pmOfferService = {
 
     return response.data.data;
   },
+
+  /**
+   * Convert or retry converting an offer original URL into an affiliate link via Cuelinks.
+   * Endpoint: POST /api/v1/product-manager/offers/:id/affiliate/convert
+   */
+  async convertAffiliateLink(id: string): Promise<any> {
+    const response = await apiClient.post<ApiResponse<any>>(
+      `/product-manager/offers/${id}/affiliate/convert`
+    );
+
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to convert affiliate link');
+    }
+
+    return response.data.data;
+  },
+
+  /**
+   * Get affiliate conversion status for an offer.
+   * Endpoint: GET /api/v1/product-manager/offers/:id/affiliate/status
+   */
+  async getAffiliateStatus(id: string): Promise<any> {
+    const response = await apiClient.get<ApiResponse<any>>(
+      `/product-manager/offers/${id}/affiliate/status`
+    );
+
+    if (!response.data.data) {
+      throw new Error(response.data.message || 'Failed to fetch affiliate status');
+    }
+
+    return response.data.data;
+  },
 };
 

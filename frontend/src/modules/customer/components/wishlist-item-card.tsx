@@ -17,6 +17,7 @@ interface WishlistItemCardProps {
 export function WishlistItemCard({ item }: WishlistItemCardProps) {
   const removeMutation = useRemoveFromWishlist();
   const productUrl = `/products/${item.slug || item.productId}`;
+  const [hasImageError, setHasImageError] = React.useState<boolean>(false);
 
   return (
     <Card className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4 border-border/80 shadow-sm hover:border-primary/40 transition-colors">
@@ -25,11 +26,12 @@ export function WishlistItemCard({ item }: WishlistItemCardProps) {
           href={productUrl}
           className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border/70 bg-secondary/30 p-1 flex items-center justify-center"
         >
-          {item.mainImage ? (
+          {item.mainImage && !hasImageError ? (
             <img
               src={item.mainImage}
               alt={item.name}
               className="h-full w-full object-contain"
+              onError={() => setHasImageError(true)}
             />
           ) : (
             <ShoppingBag className="h-8 w-8 text-muted-foreground/60" />

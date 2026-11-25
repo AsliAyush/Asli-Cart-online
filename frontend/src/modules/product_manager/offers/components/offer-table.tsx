@@ -93,6 +93,7 @@ export function OfferTable({
             <TableHead>Selling Price</TableHead>
             <TableHead>Discount %</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Affiliate</TableHead>
             <TableHead>Notes</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -148,6 +149,21 @@ export function OfferTable({
                     className="text-[10px]"
                   >
                     {offer.status}
+                  </Badge>
+                </TableCell>
+
+                <TableCell>
+                  <Badge
+                    variant={
+                      offer.conversionStatus === "CONVERTED"
+                        ? "default"
+                        : offer.conversionStatus === "FAILED"
+                        ? "destructive"
+                        : "secondary"
+                    }
+                    className="text-[10px]"
+                  >
+                    {offer.conversionStatus || "PENDING"}
                   </Badge>
                 </TableCell>
 

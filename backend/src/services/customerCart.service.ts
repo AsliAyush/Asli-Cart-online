@@ -218,7 +218,30 @@ export class CustomerCartService {
       : null;
 
     // Stored destination URL (strictly from database, never user-injected)
-    const destinationUrl = affiliateLink ? affiliateLink.affiliateUrl : (offer.affiliateUrl || offer.originalUrl);
+    // Genuinely unaffiliated offers (isAffiliated === false) must strictly use originalUrl, never a Cuelinks tracking URL.
+    // Converted or preserved affiliated offers (isAffiliated === true) use the stored affiliateUrl if valid.
+    // Missing or invalid affiliateUrls fall back gracefully to originalUrl.
+    const isValidHttpUrl = (url?: string | null): boolean => {
+      if (!url || typeof url !== 'string' || !url.trim()) return false;
+      try {
+        const parsed = new URL(url.trim());
+        return ['http:', 'https:'].includes(parsed.protocol);
+      } catch {
+        return false;
+      }
+    };
+
+    let destinationUrl: string | null = null;
+    if (offer.isAffiliated === false) {
+      destinationUrl = offer.originalUrl;
+    } else if (isValidHttpUrl(offer.affiliateUrl)) {
+      destinationUrl = offer.affiliateUrl;
+    } else if (affiliateLink && isValidHttpUrl(affiliateLink.affiliateUrl)) {
+      destinationUrl = affiliateLink.affiliateUrl;
+    } else {
+      destinationUrl = offer.originalUrl;
+    }
+
     if (!destinationUrl) {
       throw AppError.badRequest('Merchant redirect URL not configured for this offer');
     }

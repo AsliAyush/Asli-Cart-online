@@ -6,6 +6,7 @@ import moduleRouter from './module/module.router.js';
 import dashboardRouter from './dashboard/dashboard.router.js';
 import auditLogRouter from './auditLog/auditLog.router.js';
 import offerRouter from './offer/offer.router.js';
+import integrationsRouter from './integrations/cuelinks.router.js';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.use('/roles', roleRouter);
 router.use('/modules', moduleRouter);
 router.use('/audit-logs', auditLogRouter);
 router.use('/offers', offerRouter);
+router.use('/integrations', integrationsRouter);
 
 export default router;
 

@@ -28,21 +28,26 @@ interface OfferCardProps {
 
 export function OfferCard({ offer }: OfferCardProps) {
   const [selectedForRedirect, setSelectedForRedirect] = useState<boolean>(false);
+  const [hasImageError, setHasImageError] = useState<boolean>(false);
 
   return (
     <>
       <Card className="group flex flex-col overflow-hidden rounded-xl border border-border/80 bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-md">
         {/* Deal Thumbnail */}
         <div className="relative aspect-video w-full overflow-hidden bg-secondary/30 p-4 flex items-center justify-center">
-          {offer.mainImage ? (
+          {offer.mainImage && !hasImageError ? (
             <img
               src={offer.mainImage}
               alt={offer.productName}
               className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
               loading="lazy"
+              onError={() => setHasImageError(true)}
             />
           ) : (
-            <Tag className="h-10 w-10 text-muted-foreground/60" />
+            <div className="flex flex-col items-center justify-center text-muted-foreground/60 space-y-1">
+              <Tag className="h-8 w-8" />
+              <span className="text-[10px] font-medium text-muted-foreground/50">Deal Image</span>
+            </div>
           )}
 
           {offer.discountPercentage > 0 && (

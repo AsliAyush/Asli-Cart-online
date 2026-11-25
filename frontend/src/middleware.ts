@@ -39,7 +39,8 @@ export function middleware(request: NextRequest) {
 
     if (
       pathname.startsWith("/product-manager") &&
-      roleCookie !== "PRODUCT_MANAGER"
+      roleCookie !== "PRODUCT_MANAGER" &&
+      roleCookie !== "SUPER_ADMIN"
     ) {
       const unauthorizedUrl = new URL("/unauthorized", request.url);
       unauthorizedUrl.searchParams.set("requiredRole", "PRODUCT_MANAGER");

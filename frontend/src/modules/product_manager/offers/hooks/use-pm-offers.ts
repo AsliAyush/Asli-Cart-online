@@ -89,6 +89,18 @@ export function usePMOffers() {
     },
   });
 
+  const convertAffiliateMutation = useMutation({
+    mutationFn: (id: string) => pmOfferService.convertAffiliateLink(id),
+    onSuccess: (res, offerId) => {
+      toast.success(`Affiliate conversion status: ${res.conversionStatus}`);
+      queryClient.invalidateQueries({ queryKey: ["pm", "offers"] });
+      queryClient.invalidateQueries({ queryKey: PM_OFFERS_QUERY_KEYS.detail(offerId) });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || err?.message || "Failed to convert affiliate link");
+    },
+  });
+
   return {
     items: offersQuery.data?.items || [],
     pagination: offersQuery.data?.pagination || { page: 1, limit: 10, total: 0, totalPages: 1 },
@@ -112,6 +124,9 @@ export function usePMOffers() {
 
     updateStatus: updateStatusMutation.mutateAsync,
     isUpdatingStatus: updateStatusMutation.isPending,
+
+    convertAffiliateLink: convertAffiliateMutation.mutateAsync,
+    isConvertingAffiliate: convertAffiliateMutation.isPending,
 
     refetch: offersQuery.refetch,
   };

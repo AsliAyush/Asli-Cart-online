@@ -6,6 +6,8 @@ import { affiliateLinkRepository, AffiliateLinkRepository } from '../repositorie
 import { auditLogRepository, AuditLogRepository } from '../repositories/auditLog.repository.js';
 import { pricingService, PricingService } from './pricing.service.js';
 import { defaultAffiliateProvider, IAffiliateLinkProvider } from '../infra/integrations/affiliate/index.js';
+import { cuelinksLinkConversionService } from './cuelinksLinkConversion.service.js';
+import { cuelinksClient } from '../infra/integrations/cuelinks/cuelinksClient.js';
 import { AppError } from '../utils/appError.js';
 import { ROLES } from '../constants/roles.js';
 import { MODULES } from '../constants/modules.js';
@@ -47,7 +49,7 @@ export class OfferService {
     private auditRepo: AuditLogRepository = auditLogRepository,
     private pricingSvc: PricingService = pricingService,
     private affiliateProvider: IAffiliateLinkProvider = defaultAffiliateProvider
-  ) {}
+  ) { }
 
   async listOffers(params: {
     page: number;
@@ -81,11 +83,42 @@ export class OfferService {
 
     const priceCalc = this.pricingSvc.calculateDiscount(input.originalPrice, input.sellingPrice);
 
-    // Auto-generate affiliate URL via provider
-    const conversion = await this.affiliateProvider.convertUrl(input.originalUrl, {
-      subId1: product.id,
-      subId2: merchant.slug,
-    });
+    // Initial conversion attempt via Cuelinks link conversion service
+    let affiliateUrl: string | null = null;
+    let conversionStatus = 'NOT_CONVERTED';
+    let isAffiliated = false;
+    let conversionError: string | null = null;
+
+    try {
+      if (cuelinksClient.isConfigured()) {
+        const conversion = await cuelinksLinkConversionService.convertUrl(input.originalUrl, {
+          subId1: product.id,
+          subId2: merchant.slug,
+        });
+
+        conversionStatus = conversion.conversionStatus;
+        isAffiliated = conversion.affiliated;
+        if (conversion.affiliated && conversion.affiliateUrl) {
+          affiliateUrl = conversion.affiliateUrl;
+        }
+        if (conversion.errorCategory) {
+          conversionError = conversion.errorCategory;
+        }
+      } else {
+        const fallback = await this.affiliateProvider.convertUrl(input.originalUrl, {
+          subId1: product.id,
+          subId2: merchant.slug,
+        });
+        affiliateUrl = fallback.affiliateUrl;
+        conversionStatus = 'CONVERTED';
+        isAffiliated = true;
+      }
+    } catch (convErr: any) {
+      // Non-blocking: offer is still saved safely with originalUrl
+      conversionStatus = 'FAILED';
+      isAffiliated = false;
+      conversionError = convErr.message || 'CONVERSION_FAILED';
+    }
 
     const offer = await this.offerRepo.create({
       productId: input.productId,
@@ -97,7 +130,12 @@ export class OfferService {
       currency: input.currency || 'INR',
       couponCode: input.couponCode,
       originalUrl: input.originalUrl,
-      affiliateUrl: conversion.affiliateUrl,
+      affiliateUrl,
+      affiliateProvider: 'CUELINKS',
+      conversionStatus,
+      isAffiliated,
+      lastConvertedAt: new Date(),
+      conversionError,
       availability: input.availability || 'IN_STOCK',
       status: 'DRAFT',
       priceVerifiedAt: new Date(),
@@ -107,17 +145,19 @@ export class OfferService {
       createdById: actorId,
     });
 
-    // Store affiliate link entry
-    await this.affiliateRepo.create({
-      offerId: offer.id,
-      originalUrl: input.originalUrl,
-      affiliateUrl: conversion.affiliateUrl,
-      provider: conversion.provider,
-      subId1: product.id,
-      subId2: merchant.slug,
-      status: conversion.status,
-      createdById: actorId,
-    });
+    // Store affiliate link entry if affiliated
+    if (isAffiliated && affiliateUrl) {
+      await this.affiliateRepo.create({
+        offerId: offer.id,
+        originalUrl: input.originalUrl,
+        affiliateUrl,
+        provider: 'CUELINKS',
+        subId1: product.id,
+        subId2: merchant.slug,
+        status: 'ACTIVE',
+        createdById: actorId,
+      });
+    }
 
     // Store initial price history
     await this.priceHistoryRepo.create({
@@ -153,23 +193,56 @@ export class OfferService {
     const priceCalc = this.pricingSvc.calculateDiscount(originalPrice, sellingPrice);
 
     let newAffiliateUrl = existing.affiliateUrl;
-    if (input.originalUrl && input.originalUrl !== existing.originalUrl) {
-      const conversion = await this.affiliateProvider.convertUrl(input.originalUrl, {
-        subId1: existing.productId,
-        subId2: existing.merchant.slug,
-      });
-      newAffiliateUrl = conversion.affiliateUrl;
+    let newConversionStatus = (existing as any).conversionStatus || 'NOT_CONVERTED';
+    let newIsAffiliated = (existing as any).isAffiliated || false;
+    let newConversionError = (existing as any).conversionError || null;
+    let lastConvertedAt = (existing as any).lastConvertedAt;
 
-      await this.affiliateRepo.create({
-        offerId: existing.id,
-        originalUrl: input.originalUrl,
-        affiliateUrl: conversion.affiliateUrl,
-        provider: conversion.provider,
-        subId1: existing.productId,
-        subId2: existing.merchant.slug,
-        status: conversion.status,
-        createdById: actorId,
-      });
+    if (input.originalUrl && input.originalUrl !== existing.originalUrl) {
+      try {
+        if (cuelinksClient.isConfigured()) {
+          const conversion = await cuelinksLinkConversionService.convertUrl(input.originalUrl, {
+            subId1: existing.productId,
+            subId2: existing.merchant.slug,
+          });
+
+          newConversionStatus = conversion.conversionStatus;
+          newIsAffiliated = conversion.affiliated;
+          lastConvertedAt = new Date();
+          newConversionError = conversion.errorCategory || null;
+
+          if (conversion.affiliated && conversion.affiliateUrl) {
+            newAffiliateUrl = conversion.affiliateUrl;
+
+            await this.affiliateRepo.create({
+              offerId: existing.id,
+              originalUrl: input.originalUrl,
+              affiliateUrl: conversion.affiliateUrl,
+              provider: 'CUELINKS',
+              subId1: existing.productId,
+              subId2: existing.merchant.slug,
+              status: 'ACTIVE',
+              createdById: actorId,
+            });
+          } else if (conversion.conversionStatus === 'NOT_AFFILIATED') {
+            newAffiliateUrl = null;
+          }
+        } else {
+          const fallback = await this.affiliateProvider.convertUrl(input.originalUrl, {
+            subId1: existing.productId,
+            subId2: existing.merchant.slug,
+          });
+          newAffiliateUrl = fallback.affiliateUrl;
+          newConversionStatus = 'CONVERTED';
+          newIsAffiliated = true;
+          lastConvertedAt = new Date();
+        }
+      } catch (err: any) {
+        newConversionStatus = 'FAILED';
+        newIsAffiliated = false;
+        newConversionError = err.message || 'CONVERSION_FAILED';
+        lastConvertedAt = new Date();
+      }
     }
 
     const priceChanged =
@@ -182,7 +255,14 @@ export class OfferService {
       discountPercentage: priceCalc.discountPercentage,
       ...(input.currency ? { currency: input.currency } : {}),
       ...(input.couponCode !== undefined ? { couponCode: input.couponCode } : {}),
-      ...(input.originalUrl ? { originalUrl: input.originalUrl, affiliateUrl: newAffiliateUrl } : {}),
+      ...(input.originalUrl ? {
+        originalUrl: input.originalUrl,
+        affiliateUrl: newAffiliateUrl,
+        conversionStatus: newConversionStatus,
+        isAffiliated: newIsAffiliated,
+        conversionError: newConversionError,
+        lastConvertedAt,
+      } : {}),
       ...(input.availability ? { availability: input.availability } : {}),
       ...(input.startDate ? { startDate: new Date(input.startDate) } : {}),
       ...(input.endDate ? { endDate: new Date(input.endDate) } : {}),
@@ -427,6 +507,14 @@ export class OfferService {
     });
 
     return updated;
+  }
+
+  async convertAffiliateLink(id: string, actorId: string, actorRole?: string) {
+    return cuelinksLinkConversionService.convertOffer(id, actorId, actorRole);
+  }
+
+  async getAffiliateStatus(id: string) {
+    return cuelinksLinkConversionService.getOfferAffiliateStatus(id);
   }
 }
 

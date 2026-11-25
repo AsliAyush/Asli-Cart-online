@@ -3,17 +3,34 @@ import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
 import prisma from './infra/database/prisma.js';
 import { closeRedisConnection } from './infra/redis/redis.js';
+import { initializeCronJobs, stopCronJobs } from './cron/index.js';
 
 const app = createApp();
 
 const server = app.listen(env.PORT, () => {
   logger.info(`Asli Cart Backend running in [${env.NODE_ENV}] mode on port ${env.PORT}`);
   logger.info(`Health check available at http://localhost:${env.PORT}/api/v1/health`);
+
+  // Initialize background cron schedulers
+  try {
+    initializeCronJobs();
+    logger.info('Background cron schedulers initialized successfully.');
+  } catch (cronErr: any) {
+    logger.error({ err: cronErr?.message }, 'Failed to initialize background cron schedulers');
+  }
 });
 
 // Graceful Shutdown
 const handleShutdown = async (signal: string) => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+  // 1. Stop background cron schedulers immediately to prevent starting new jobs
+  try {
+    stopCronJobs();
+    logger.info('Background cron schedulers stopped.');
+  } catch (err: any) {
+    logger.warn('Error stopping cron schedulers:', err?.message);
+  }
 
   server.close(async () => {
     logger.info('HTTP server closed.');
