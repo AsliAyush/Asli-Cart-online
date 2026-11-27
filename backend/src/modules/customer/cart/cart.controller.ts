@@ -59,7 +59,7 @@ export class CustomerCartController {
 
   async generateMerchantRedirect(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const customerId = (req as any).user.userId;
+      const customerId = (req as any).user?.userId || (req as any).user?.id || undefined;
       const { offerId, source } = req.body;
       const ipAddress = req.ip || req.socket.remoteAddress;
       const userAgent = req.headers['user-agent'];

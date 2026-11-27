@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { ExternalLink, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -14,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
 import { useMerchantRedirect } from "../hooks/use-customer-cart";
 
 interface AffiliateRedirectDialogProps {
@@ -37,8 +35,6 @@ export function AffiliateRedirectDialog({
   onOpenChange,
   offer,
 }: AffiliateRedirectDialogProps) {
-  const { isAuthenticated, user } = useAuth();
-  const isCustomer = isAuthenticated && user?.role === "CUSTOMER";
   const redirectMutation = useMerchantRedirect();
 
   if (!offer) return null;
@@ -113,33 +109,24 @@ export function AffiliateRedirectDialog({
             Cancel
           </Button>
 
-          {isCustomer ? (
-            <Button
-              size="sm"
-              onClick={handleProceed}
-              disabled={redirectMutation.isPending}
-              className="gap-2 font-semibold"
-            >
-              {redirectMutation.isPending ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Connecting...</span>
-                </>
-              ) : (
-                <>
-                  <span>Continue to {offer.merchant.name}</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </>
-              )}
-            </Button>
-          ) : (
-            <Button size="sm" asChild className="gap-2">
-              <Link href={`/customer/login?returnUrl=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "/")}`}>
-                <span>Sign In to Continue</span>
+          <Button
+            size="sm"
+            onClick={handleProceed}
+            disabled={redirectMutation.isPending}
+            className="gap-2 font-semibold"
+          >
+            {redirectMutation.isPending ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Connecting...</span>
+              </>
+            ) : (
+              <>
+                <span>Continue to {offer.merchant.name}</span>
                 <ExternalLink className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          )}
+              </>
+            )}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

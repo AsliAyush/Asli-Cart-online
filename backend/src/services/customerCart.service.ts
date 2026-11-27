@@ -190,7 +190,7 @@ export class CustomerCartService {
   }
 
   async generateMerchantRedirect(params: {
-    customerId: string;
+    customerId?: string;
     offerId: string;
     source?: string;
     ipAddress?: string;
@@ -210,6 +210,10 @@ export class CustomerCartService {
     const now = new Date();
     if (offer.endDate && new Date(offer.endDate) < now) {
       throw AppError.badRequest('This merchant offer has expired');
+    }
+
+    if (offer.availability === 'OUT_OF_STOCK') {
+      throw AppError.badRequest('This product offer is currently out of stock');
     }
 
     // Resolve affiliate link
@@ -242,7 +246,7 @@ export class CustomerCartService {
       destinationUrl = offer.originalUrl;
     }
 
-    if (!destinationUrl) {
+    if (!destinationUrl || !isValidHttpUrl(destinationUrl)) {
       throw AppError.badRequest('Merchant redirect URL not configured for this offer');
     }
 

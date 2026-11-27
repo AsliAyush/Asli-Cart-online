@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { customerCartController } from './cart.controller.js';
-import { authenticate } from '../../../middlewares/authMiddleware.js';
+import { authenticate, authenticateOptional } from '../../../middlewares/authMiddleware.js';
 import { requirePermission } from '../../../middlewares/permissionMiddleware.js';
 import { validateRequest } from '../../../middlewares/validateRequest.js';
 import {
@@ -13,6 +13,19 @@ import { MODULES, PERMISSIONS } from '../../../constants/modules.js';
 
 const router = Router();
 
+/**
+ * Outbound Merchant Redirect
+ * Open to both authenticated customers and unauthenticated guests.
+ * Attaches customer ID attribution if a valid token is present; otherwise records as guest click.
+ */
+router.post(
+  '/merchant-redirect',
+  authenticateOptional,
+  validateRequest({ body: merchantRedirectSchema }),
+  customerCartController.generateMerchantRedirect
+);
+
+// All subsequent shopping cart mutations and state endpoints require customer authentication
 router.use(authenticate);
 
 router.get(
@@ -46,13 +59,6 @@ router.delete(
   '/clear',
   requirePermission(MODULES.CART, PERMISSIONS.DELETE),
   customerCartController.clearCart
-);
-
-router.post(
-  '/merchant-redirect',
-  requirePermission(MODULES.CART, PERMISSIONS.VIEW),
-  validateRequest({ body: merchantRedirectSchema }),
-  customerCartController.generateMerchantRedirect
 );
 
 export default router;

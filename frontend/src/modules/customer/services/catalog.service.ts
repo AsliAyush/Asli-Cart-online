@@ -13,9 +13,19 @@ export class CustomerCatalogService {
    * GET /api/v1/customer/products
    */
   async listProducts(params?: ListCustomerProductsParams): Promise<BackendPaginatedData<CustomerProductItem>> {
+    // Clean params to avoid sending empty search parameters or empty strings
+    const cleanParams: Record<string, any> = {};
+    if (params) {
+      for (const [key, val] of Object.entries(params)) {
+        if (val !== undefined && val !== null && val !== "") {
+          cleanParams[key] = val;
+        }
+      }
+    }
+
     const res = await apiClient.get<ApiResponse<BackendPaginatedData<CustomerProductItem>>>(
       "/customer/products",
-      { params }
+      { params: cleanParams }
     );
     if (!res.data.data) {
       return {

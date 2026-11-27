@@ -56,6 +56,55 @@ export const authenticate = async (
   }
 };
 
+export const authenticateOptional = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    let token: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.cookies && req.cookies.accessToken) {
+      token = req.cookies.accessToken;
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    try {
+      const payload = JwtUtil.verifyAccessToken(token);
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        include: {
+          role: true,
+        },
+      });
+
+      if (user && user.isActive) {
+        req.user = {
+          id: user.id,
+          userId: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          roleId: user.roleId,
+          roleName: user.role.name,
+          isActive: user.isActive,
+        };
+      }
+    } catch {
+      // Silently ignore invalid or expired tokens in optional auth
+    }
+
+    next();
+  } catch (err: any) {
+    next(err);
+  }
+};
+
 export const requireRole = (...allowedRoles: string[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {

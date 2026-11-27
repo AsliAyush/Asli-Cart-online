@@ -170,7 +170,7 @@ describe('Customer Shopping Cart Module', () => {
     expect(getRes.body.data.itemsCount).toBe(0);
   });
 
-  it('POST /api/v1/customer/cart/merchant-redirect - should generate outbound redirect and track click attribution', async () => {
+  it('POST /api/v1/customer/cart/merchant-redirect - should generate outbound redirect and track click attribution for authenticated user', async () => {
     const res = await request(app)
       .post('/api/v1/customer/cart/merchant-redirect')
       .set('Authorization', `Bearer ${customerToken}`)
@@ -184,7 +184,128 @@ describe('Customer Shopping Cart Module', () => {
     expect(res.body.data.clickReference).toBeDefined();
     expect(res.body.data.redirectPath).toContain('/api/v1/customer/redirect/');
     expect(res.body.data.merchant.name).toBe('Amazon India');
-    expect(res.body.data.destinationUrl).toBeDefined();
+    expect(res.body.data.destinationUrl).toBe('https://www.amazon.in/dp/B0CX999888');
+
+    const clickRecord = store.affiliateClicks.find(
+      (c: any) => c.clickReference === res.body.data.clickReference
+    );
+    expect(clickRecord).toBeDefined();
+    expect(clickRecord.customerId).toBeDefined();
+  });
+
+  it('POST /api/v1/customer/cart/merchant-redirect - should allow guest (unauthenticated) users without 401', async () => {
+    const res = await request(app)
+      .post('/api/v1/customer/cart/merchant-redirect')
+      .send({
+        offerId,
+        source: 'product_details',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.clickReference).toBeDefined();
+    expect(res.body.data.destinationUrl).toBe('https://www.amazon.in/dp/B0CX999888');
+
+    const clickRecord = store.affiliateClicks.find(
+      (c: any) => c.clickReference === res.body.data.clickReference
+    );
+    expect(clickRecord).toBeDefined();
+    expect(clickRecord.customerId).toBeUndefined();
+  });
+
+  it('POST /api/v1/customer/cart/merchant-redirect - should use originalUrl when isAffiliated is false', async () => {
+    const nonAffOfferId = 'offer-non-aff';
+    store.offers.push({
+      id: nonAffOfferId,
+      productId,
+      merchantId: 'merch-amazon',
+      title: 'Unaffiliated Deal',
+      originalPrice: 1000,
+      sellingPrice: 800,
+      discountPercentage: 20,
+      currency: 'INR',
+      originalUrl: 'https://www.amazon.in/dp/B0NONAFFIL',
+      affiliateUrl: 'https://cuelinks.com/fake-aff-link',
+      isAffiliated: false,
+      availability: 'IN_STOCK',
+      status: 'PUBLISHED',
+      createdById: 'admin-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await request(app)
+      .post('/api/v1/customer/cart/merchant-redirect')
+      .send({
+        offerId: nonAffOfferId,
+        source: 'product_details',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.destinationUrl).toBe('https://www.amazon.in/dp/B0NONAFFIL');
+  });
+
+  it('POST /api/v1/customer/cart/merchant-redirect - should reject non-existent or unpublished offers', async () => {
+    // Non-existent offer
+    const notFoundRes = await request(app)
+      .post('/api/v1/customer/cart/merchant-redirect')
+      .send({
+        offerId: 'offer-does-not-exist',
+        source: 'product_details',
+      });
+    expect(notFoundRes.status).toBe(404);
+
+    // Unpublished (PENDING_APPROVAL) offer
+    const draftOfferId = 'offer-draft-1';
+    store.offers.push({
+      id: draftOfferId,
+      productId,
+      merchantId: 'merch-amazon',
+      title: 'Draft Deal',
+      originalPrice: 1000,
+      sellingPrice: 800,
+      currency: 'INR',
+      originalUrl: 'https://www.amazon.in/dp/B0DRAFT',
+      availability: 'IN_STOCK',
+      status: 'PENDING_APPROVAL',
+      createdById: 'admin-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const draftRes = await request(app)
+      .post('/api/v1/customer/cart/merchant-redirect')
+      .send({
+        offerId: draftOfferId,
+        source: 'product_details',
+      });
+    expect(draftRes.status).toBe(400);
+
+    // Out of stock offer
+    const outOfStockOfferId = 'offer-oos-1';
+    store.offers.push({
+      id: outOfStockOfferId,
+      productId,
+      merchantId: 'merch-amazon',
+      title: 'OOS Deal',
+      originalPrice: 1000,
+      sellingPrice: 800,
+      currency: 'INR',
+      originalUrl: 'https://www.amazon.in/dp/B0OOS',
+      availability: 'OUT_OF_STOCK',
+      status: 'PUBLISHED',
+      createdById: 'admin-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const oosRes = await request(app)
+      .post('/api/v1/customer/cart/merchant-redirect')
+      .send({
+        offerId: outOfStockOfferId,
+        source: 'product_details',
+      });
+    expect(oosRes.status).toBe(400);
   });
 
   it('IDOR Guard - Customer A must not be able to modify Customer B cart item', async () => {

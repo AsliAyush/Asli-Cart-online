@@ -28,6 +28,11 @@ export function ProductFilters({
   const { data: categories = [] } = useCustomerCategories();
   const [localSearch, setLocalSearch] = React.useState(filters.search || "");
 
+  const onFilterChangeRef = React.useRef(onFilterChange);
+  React.useEffect(() => {
+    onFilterChangeRef.current = onFilterChange;
+  }, [onFilterChange]);
+
   // Sync local search when filters are reset or modified externally
   React.useEffect(() => {
     setLocalSearch(filters.search || "");
@@ -35,12 +40,15 @@ export function ProductFilters({
 
   // Debounce search input to eliminate request waterfalls while typing
   React.useEffect(() => {
-    if (localSearch === (filters.search || "")) return;
+    const activeSearch = filters.search || "";
+    if (localSearch.trim() === activeSearch.trim()) return;
+
     const timer = setTimeout(() => {
-      onFilterChange({ search: localSearch.trim() || undefined, page: 1 });
+      onFilterChangeRef.current({ search: localSearch.trim() || undefined, page: 1 });
     }, 300);
+
     return () => clearTimeout(timer);
-  }, [localSearch, filters.search, onFilterChange]);
+  }, [localSearch, filters.search]);
 
   const hasActiveFilters = Boolean(
     filters.search ||
